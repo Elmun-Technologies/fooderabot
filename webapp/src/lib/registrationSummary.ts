@@ -10,6 +10,7 @@ export interface RegistrationDetails {
   companyActivity?: string;
   spaceNeeded?: string;
   willAttend?: boolean;
+  phone?: string;
 }
 
 export function buildSummaryRows(language: Language, d: RegistrationDetails): { label: string; value: string }[] {
@@ -17,13 +18,18 @@ export function buildSummaryRows(language: Language, d: RegistrationDetails): { 
 
   if (d.type) rows.push({ label: t(language, "summaryType"), value: t(language, d.type === "STAND" ? "typeStand" : "typeGuest") });
   if (d.fullName) rows.push({ label: t(language, "fullName"), value: d.fullName });
-  if (d.position) rows.push({ label: t(language, "position"), value: d.position });
+  if (d.position) rows.push({ label: t(language, "positionTitle"), value: d.position });
   if (d.companyName) rows.push({ label: t(language, "companyName"), value: d.companyName });
+  if (d.phone) rows.push({ label: t(language, "summaryPhone"), value: d.phone });
 
   if (d.type === "STAND") {
     if (d.companyYears) rows.push({ label: t(language, "shortCompanyYears"), value: d.companyYears });
     if (d.companyActivity) rows.push({ label: t(language, "shortCompanyActivity"), value: d.companyActivity });
-    if (d.spaceNeeded) rows.push({ label: t(language, "shortSpaceNeeded"), value: `${d.spaceNeeded} m²` });
+    if (d.spaceNeeded) {
+      // New values are labels like "Premium stend · 18 m²"; legacy rows are plain numbers ("12").
+      const value = /m²|m2/i.test(d.spaceNeeded) ? d.spaceNeeded : `${d.spaceNeeded} m²`;
+      rows.push({ label: t(language, "shortSpaceNeeded"), value });
+    }
   }
 
   if (d.type === "GUEST" && d.willAttend !== undefined) {

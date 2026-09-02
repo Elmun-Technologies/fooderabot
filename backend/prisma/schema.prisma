@@ -50,6 +50,7 @@ model Registration {
 
   position        String
   fullName        String
+  phone           String? // required for STAND registrations; optional for GUEST
   companyName     String?
   companyYears    String?
   companyActivity String?

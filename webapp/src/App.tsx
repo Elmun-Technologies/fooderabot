@@ -41,6 +41,7 @@ export default function App() {
               companyActivity: res.companyActivity,
               spaceNeeded: res.spaceNeeded,
               willAttend: res.willAttend,
+              phone: res.phone,
             },
           });
         } else {
@@ -69,6 +70,7 @@ export default function App() {
           companyYears: v.companyYears,
           companyActivity: v.companyActivity,
           spaceNeeded: v.spaceNeeded,
+          phone: v.phone.trim() || undefined,
         });
         details = { type: "STAND", ...v };
       } else {
@@ -80,6 +82,7 @@ export default function App() {
           fullName: v.fullName,
           companyName: v.companyName,
           willAttend: v.willAttend,
+          phone: v.phone,
         });
         details = { type: "GUEST", ...v };
       }
@@ -97,7 +100,7 @@ export default function App() {
     case "loading":
       return (
         <div className="splash">
-          <img className="splash__logo" src="/logo.png" alt="Foodera Expo" />
+          <img src="/logo.png" alt="FOODERA EXPO 2026" className="splash__logo" />
           <div className="splash__spinner" />
         </div>
       );

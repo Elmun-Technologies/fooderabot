@@ -3,19 +3,6 @@ import { t } from "../i18n";
 
 /** Event facts mirrored from sofexpo.uz/foodera-expo */
 export const EVENT = {
-  name: "FOODERA EXPO 2026",
-  /** Local time, Samarkand */
-  startDate: new Date("2026-10-20T00:00:00+05:00"),
-  countries: [
-    { code: "UZ", flag: "assets/flags/uz.png", market: "$15–18B" },
-    { code: "KZ", flag: "assets/flags/kz.png", market: "$22–28B" },
-    { code: "AF", flag: "assets/flags/af.png", market: "$10–15B" },
-    { code: "TJ", flag: "assets/flags/tj.png", market: "$4–6B" },
-    { code: "TM", flag: "assets/flags/tm.png", market: "$4–6B" },
-    { code: "KG", flag: "assets/flags/kg.png", market: "$3–5B" },
-  ],
-  /** Scarcity shown on the role screen — number from the site, update as needed. */
-  scarcity: { premiumStandsLeft: 38 },
   /** Organizer contact (from sofexpo.uz). */
   contact: {
     phone: "+998 55 705 0 705",
@@ -24,33 +11,26 @@ export const EVENT = {
   },
 } as const;
 
-/** Days until the expo starts; negative once it has started. */
-export function daysUntilEvent(): number {
-  const ms = EVENT.startDate.getTime() - Date.now();
-  return Math.ceil(ms / 86_400_000);
-}
-
 export interface OptionDef {
   key: string;
-  icon?: string;
   labelKey: TranslationKey;
 }
 
 /** Business categories — mirrors the categories on sofexpo.uz/foodera-expo. */
 export const CATEGORY_OPTIONS: OptionDef[] = [
-  { key: "drinks", icon: "🥤", labelKey: "catDrinks" },
-  { key: "tea_coffee", icon: "☕", labelKey: "catTeaCoffee" },
-  { key: "grocery", icon: "🫙", labelKey: "catGrocery" },
-  { key: "confectionery", icon: "🍰", labelKey: "catConfectionery" },
-  { key: "dairy", icon: "🧀", labelKey: "catDairy" },
-  { key: "meat", icon: "🍗", labelKey: "catMeat" },
-  { key: "frozen", icon: "❄️", labelKey: "catFrozen" },
-  { key: "canned", icon: "🥫", labelKey: "catCanned" },
-  { key: "oil_sauces", icon: "🫒", labelKey: "catOilSauces" },
-  { key: "deli", icon: "🍽", labelKey: "catDeli" },
-  { key: "organic", icon: "🌿", labelKey: "catOrganic" },
-  { key: "equipment", icon: "📦", labelKey: "catEquipment" },
-  { key: "other", icon: "❓", labelKey: "catOther" },
+  { key: "drinks", labelKey: "catDrinks" },
+  { key: "tea_coffee", labelKey: "catTeaCoffee" },
+  { key: "grocery", labelKey: "catGrocery" },
+  { key: "confectionery", labelKey: "catConfectionery" },
+  { key: "dairy", labelKey: "catDairy" },
+  { key: "meat", labelKey: "catMeat" },
+  { key: "frozen", labelKey: "catFrozen" },
+  { key: "canned", labelKey: "catCanned" },
+  { key: "oil_sauces", labelKey: "catOilSauces" },
+  { key: "deli", labelKey: "catDeli" },
+  { key: "organic", labelKey: "catOrganic" },
+  { key: "equipment", labelKey: "catEquipment" },
+  { key: "other", labelKey: "catOther" },
 ];
 
 export const POSITION_OPTIONS: OptionDef[] = [
@@ -70,10 +50,10 @@ export const YEARS_OPTIONS: OptionDef[] = [
 ];
 
 export const STAND_TYPE_OPTIONS: OptionDef[] = [
-  { key: "premium", icon: "✨", labelKey: "standPremium" },
-  { key: "standard", icon: "🏢", labelKey: "standStandard" },
-  { key: "area", icon: "📐", labelKey: "standArea" },
-  { key: "unsure", icon: "💬", labelKey: "standUnsure" },
+  { key: "premium", labelKey: "standPremium" },
+  { key: "standard", labelKey: "standStandard" },
+  { key: "area", labelKey: "standArea" },
+  { key: "unsure", labelKey: "standUnsure" },
 ];
 
 /** Localized label of an option (what the user saw — stored in the DB/CRM as-is). */

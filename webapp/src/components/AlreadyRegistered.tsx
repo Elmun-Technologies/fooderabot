@@ -1,14 +1,14 @@
 import { t, type Language } from "../i18n";
-import { Screen } from "./Screen";
+import { buildSummaryRows, type RegistrationDetails } from "../lib/registrationSummary";
+import { ResultScreen } from "./ResultScreen";
 
-export function AlreadyRegistered({ language }: { language: Language }) {
+export function AlreadyRegistered({ language, details }: { language: Language; details: RegistrationDetails }) {
   return (
-    <Screen>
-      <div className="center">
-        <div className="badge-icon">✅</div>
-        <h1 className="screen__title">{t(language, "alreadyRegisteredTitle")}</h1>
-        <p className="screen__subtitle">{t(language, "alreadyRegisteredText")}</p>
-      </div>
-    </Screen>
+    <ResultScreen
+      icon="✓"
+      title={t(language, "alreadyRegisteredTitle")}
+      text={t(language, "alreadyRegisteredText")}
+      details={buildSummaryRows(language, details)}
+    />
   );
 }

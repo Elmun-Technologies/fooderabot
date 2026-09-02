@@ -27,10 +27,18 @@ async function upsertUser(tgUser: TelegramWebAppUser) {
 
 export async function checkRegistration(tgUser: TelegramWebAppUser) {
   const user = await upsertUser(tgUser);
+  const r = user.registration;
   return {
-    alreadyRegistered: Boolean(user.registration),
-    type: user.registration?.type,
-    language: user.registration?.language,
+    alreadyRegistered: Boolean(r),
+    type: r?.type,
+    language: r?.language,
+    fullName: r?.fullName,
+    position: r?.position,
+    companyName: r?.companyName ?? undefined,
+    companyYears: r?.companyYears ?? undefined,
+    companyActivity: r?.companyActivity ?? undefined,
+    spaceNeeded: r?.spaceNeeded ?? undefined,
+    willAttend: r?.willAttend ?? undefined,
   };
 }
 

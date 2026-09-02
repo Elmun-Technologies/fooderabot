@@ -23,6 +23,13 @@ export interface CheckResponse {
   alreadyRegistered: boolean;
   type?: "STAND" | "GUEST";
   language?: string;
+  fullName?: string;
+  position?: string;
+  companyName?: string;
+  companyYears?: string;
+  companyActivity?: string;
+  spaceNeeded?: string;
+  willAttend?: boolean;
 }
 
 export function checkRegistration() {

@@ -24,10 +24,38 @@ function crmLine(registration: Registration): string {
   return "⏳ amoCRM: kutilmoqda";
 }
 
+function tierBadge(registration: Registration): string | null {
+  if (!registration.leadTier) return null;
+  switch (registration.leadTier) {
+    case "HOT":
+      return "🔥🔥🔥 HOT LEAD — 1 soat ichida bog'laning!";
+    case "WARM":
+      return "🟡 WARM — 24 soat ichida bog'laning";
+    case "COLD":
+      return "🔵 COLD — navbat bilan";
+    default:
+      return null;
+  }
+}
+
 function formatLead(registration: Registration, user: User): string {
   const lines: string[] = [];
 
-  lines.push(registration.type === "STAND" ? "🆕 Yangi ariza — STEND" : "🆕 Yangi ariza — MEHMON");
+  // Title + tier (Stage 2). HOT leads get a louder header so the team
+  // notices them in a busy group chat.
+  const hot = registration.leadTier === "HOT";
+  lines.push(
+    hot
+      ? `🚨 Yangi ariza — ${registration.type === "STAND" ? "STEND" : "MEHMON"} 🚨`
+      : registration.type === "STAND"
+        ? "🆕 Yangi ariza — STEND"
+        : "🆕 Yangi ariza — MEHMON",
+  );
+  const tier = tierBadge(registration);
+  if (tier) {
+    lines.push(tier);
+    lines.push(`📊 Lead score: ${registration.leadScore}/100`);
+  }
   lines.push(`👤 ${registration.fullName} — ${registration.position}`);
 
   if (registration.companyName) {
@@ -40,8 +68,9 @@ function formatLead(registration: Registration, user: User): string {
     lines.push(`🏢 ${registration.companyName}${extra ? ` (${extra})` : ""}`);
   }
 
-  if (registration.type === "STAND" && registration.spaceNeeded) {
-    lines.push(`📐 Stend: ${registration.spaceNeeded}`);
+  if (registration.type === "STAND") {
+    if (registration.spaceNeeded) lines.push(`📐 Stend: ${registration.spaceNeeded}`);
+    if (registration.city) lines.push(`📍 Shahar: ${registration.city}`);
   }
   if (registration.type === "GUEST" && registration.willAttend !== null) {
     lines.push(`🎟 Kelishi: ${registration.willAttend ? "Ha" : "Aniq emas"}`);
@@ -65,4 +94,13 @@ function formatLead(registration: Registration, user: User): string {
 export async function notifyLeadsGroup(registration: Registration, user: User): Promise<void> {
   if (!config.leadsGroupChatId) return;
   await bot.telegram.sendMessage(config.leadsGroupChatId, formatLead(registration, user));
+}
+
+/**
+ * Send a raw text message to the leads group. Used by the workflow
+ * engine (`notify_admins` action) to push custom notifications.
+ */
+export async function sendLeadsGroup(text: string): Promise<void> {
+  if (!config.leadsGroupChatId) return;
+  await bot.telegram.sendMessage(config.leadsGroupChatId, text);
 }

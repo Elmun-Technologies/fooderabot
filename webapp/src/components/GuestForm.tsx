@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { t, type Language } from "../i18n";
 import { POSITION_OPTIONS, optionLabel } from "../lib/event";
+import { haptics } from "../lib/haptics";
 import { isValidPhone } from "../lib/telegram";
 import { Chips } from "./Chips";
 import { PhoneField } from "./PhoneField";
@@ -38,6 +39,11 @@ export function GuestForm({
   const [phone, setPhone] = useState(initial?.phone ?? "");
   const [touched, setTouched] = useState(false);
 
+  const onPositionChange = (v: string) => {
+    haptics.select();
+    setPosition(v);
+  };
+
   const positionOption = POSITION_OPTIONS.find((o) => o.key === position);
   const fullNameError = touched && !fullName.trim() ? t(language, "required") : undefined;
   const positionError = touched && !positionOption ? t(language, "selectRequired") : undefined;
@@ -46,7 +52,7 @@ export function GuestForm({
 
   if (step === 2) {
     return (
-      <Screen step={2} totalSteps={TOTAL_STEPS} onBack={() => setStep(1)}>
+      <Screen step={2} totalSteps={TOTAL_STEPS} onBack={() => { haptics.tap(); setStep(1); }}>
         <div className="result result--inline">
           <div className="result__icon result__icon--gold">🎫</div>
           <h1 className="result__title">{t(language, "willAttendTitle")}</h1>
@@ -57,15 +63,16 @@ export function GuestForm({
             type="button"
             className="button"
             disabled={submitting}
-            onClick={() =>
+            onClick={() => {
+              haptics.confirm();
               onSubmit({
                 position: positionOption ? optionLabel(language, positionOption) : "",
                 fullName,
                 companyName: companyName.trim() || undefined,
                 willAttend: true,
                 phone: isValidPhone(phone) ? phone.trim() : undefined,
-              })
-            }
+              });
+            }}
           >
             {submitting ? t(language, "loading") : t(language, "willAttendYes")}
           </button>
@@ -73,15 +80,16 @@ export function GuestForm({
             type="button"
             className="button button--secondary"
             disabled={submitting}
-            onClick={() =>
+            onClick={() => {
+              haptics.tap();
               onSubmit({
                 position: positionOption ? optionLabel(language, positionOption) : "",
                 fullName,
                 companyName: companyName.trim() || undefined,
                 willAttend: false,
                 phone: isValidPhone(phone) ? phone.trim() : undefined,
-              })
-            }
+              });
+            }}
           >
             {t(language, "willAttendNo")}
           </button>
@@ -91,7 +99,7 @@ export function GuestForm({
   }
 
   return (
-    <Screen step={1} totalSteps={TOTAL_STEPS} onBack={onBack} heading={t(language, "formTitleGuest")}>
+    <Screen step={1} totalSteps={TOTAL_STEPS} onBack={() => { haptics.tap(); onBack(); }} heading={t(language, "formTitleGuest")}>
       <div className="form-step">
         <TextField
           label={t(language, "fullName")}
@@ -105,7 +113,7 @@ export function GuestForm({
           <Chips
             options={POSITION_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
             value={position}
-            onChange={setPosition}
+            onChange={onPositionChange}
             error={positionError}
           />
         </div>
@@ -124,7 +132,12 @@ export function GuestForm({
           className="button"
           onClick={() => {
             setTouched(true);
-            if (detailsValid && !(phone.trim() && !isValidPhone(phone))) setStep(2);
+            if (detailsValid && !(phone.trim() && !isValidPhone(phone))) {
+              haptics.confirm();
+              setStep(2);
+            } else {
+              haptics.error();
+            }
           }}
         >
           {t(language, "next")}

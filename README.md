@@ -1,4 +1,4 @@
-# Foodera Expo — Telegram ro'yxatdan o'tish boti
+# Foodera Expo — Telegram Mini App + Lead-Gen Platform
 
 `sofexpo.uz/foodera-expo` saytidagi past konversiyani hal qilish uchun Telegram bot +
 Web App (Mini App). Foydalanuvchi botga kirib, ichki formani to'ldiradi, forma
@@ -7,21 +7,31 @@ to'liqsiz liddlarning oldini olish va maksimal konversiya: har bir savol bitta
 tapsilda hal bo'ladi (chips), stend arizasi uchun telefon 1 ta tugma bilan
 Telegram'dan olinadi.
 
+**Production:** `https://fooderabot-api.fly.dev` (Fly.io, region `fra`).
+**Admin panel:** `https://fooderabot-api.fly.dev/admin` (Stage 5, single-origin).
+
 ## Arxitektura
 
 ```
 backend/   Node.js + TypeScript
            - Telegraf bot (/start, UTM deep-link, "allaqachon ro'yxatdan o'tgan" tekshiruvi)
-           - Express API (webapp bilan aloqa, Telegram initData tekshiruvi)
-           - Prisma + PostgreSQL (User, Registration)
-           - amoCRM integratsiyasi (lead + contact yaratish, telefon builtin PHONE fieldga)
+           - Express API — /api/webapp (initData auth), /api/admin (PBKDF2 cookie)
+           - Prisma + PostgreSQL (User, Registration, Event, Sequence, Broadcast,
+             Workflow, AdminUser/Session, AuditLog)
+           - Lead scoring engine (services/leadScoring.ts, 0..100 ball + HOT/WARM/COLD)
+           - Marketing automation: DB-driven nudge + follow-up sequences
+           - amoCRM integratsiyasi (lead + contact yaratish, lead score bilan)
 
-webapp/    React + TypeScript + Vite — Telegram Mini App (Web App)
-           - Til tanlash: UZ / RU / EN
-           - Event landing: logo, foto, sana/joy, countdown, statistika, davlat bayroqlari
-           - "Stend bilan qatnashish" yoki "Mehmon" oqimi
-           - Bosqichma-bosqich forma: tanlovlar chips ko'rinishida, validatsiya bilan
-           - Telefon: Telegram'dan 1 ta tugma bilan (WebApp.requestContact) yoki qo'lda
+webapp/    React + TypeScript + Vite — Telegram Mini App
+           - /        : Mini App (kod-split: admin alohida chunk)
+           - /admin/* : Admin panel (lazy loaded, ~4.7 KB gzip)
+           - Editorial B2B landing (Yo'nalish A, qora-oltin, Manrope + Inter)
+           - StandForm 4-step (kategoriya → shahar → kontakt → stend+telefon)
+           - Telefon 1 tap (Telegram'dan, WebApp.requestContact)
+           - WebAudio sound engine, haptic feedback, count-up animatsiya
+           - Analytics client (batch, sendBeacon, anonymousId)
+
+docs/      Stage 0 audit + roadmap (production holatining to'liq xaritasi)
 ```
 
 ## Konversiya uchun qilingan dizayn qarorlari
@@ -215,3 +225,236 @@ HTTPS ortida ishga tushiring).
 - Barcha matnlar `backend/src/bot/i18n.ts` (bot xabarlari) va
   `webapp/src/i18n/locales/*.json` (forma) fayllarida — yangi til yoki matn qo'shish
   shu fayllarni tahrirlash bilan cheklanadi.
+
+---
+
+## Admin panel (`/admin/*`)
+
+Stage 5 da qo'shildi. Production: `https://<your-app>.fly.dev/admin`. Mini App
+bilan bir xil origin (cookie SameSite=Lax, single-origin deploy).
+
+**Birinchi admin yaratish** (serverda yoki fly ssh orqali):
+```bash
+cd backend
+npx tsx scripts/createAdmin.ts <username> <password>
+```
+
+**Imkoniyatlar:**
+- **Dashboard** — bugun/hafta/umumiy leadlar, 🔥 HOT count, funnel
+  (4 qadam: app_open → landing → role → submit), breakdown chips
+  (tier/language/status), recent events, recent admin actions.
+- **Leadlar** — paginated ro'yxat (tier badge, ball, telefon, kompaniya),
+  har bir lead uchun to'liq profil (12 ta maydon: telefon, kompaniya,
+  shahar, faoliyat, yil, stend, UTM, amoCRM), CSV eksport
+  (`/api/admin/leads.csv`, RFC 4180).
+- **Ketma-ketliklar** — marketing sequences (nudge + follow-up) ni
+  web'dan tahrirlash: enabled toggle, har step uchun afterMinutes,
+  3 tilda matn, CTA flag. Saqlash transaction orqali (atomic).
+- **Audit** — har bir admin amali (login, login_failed, dashboard_view,
+  leads_export, sequence_update) + IP, target, meta. Parol/token hech
+  qachon yozilmaydi.
+
+**Xavfsizlik:**
+- PBKDF2-SHA256 (120k iteratsiya) parol hash, 16 byte per-admin salt
+- Session token 32 byte random, faqat sha256 hash DB'da
+- 7 kunlik httpOnly cookie, SameSite=Lax
+- 5 ta login urinish / 60s / IP rate limit
+- Production HTTPS (Fly) — `secure: true`
+
+**Keyingi (Stage 7+):** argon2id parol hash, IP allowlist, 2FA, keyingi
+sessiya refresh, broadcast/workflow UI (hozir schema bor, UI yo'q).
+
+---
+
+## Lead scoring (Stage 2)
+
+`backend/src/services/leadScoring.ts` — qoidalar:
+
+| Signal | Ball |
+|---|---|
+| `type = STAND` | +30 |
+| Telefon kiritilgan | +20 |
+| `companyYears = 10_plus` | +15 |
+| `companyYears = 3_10` | +10 |
+| `spaceNeeded = premium` (18 m²) | +15 |
+| `spaceNeeded = standard` (12 m²) | +10 |
+| `spaceNeeded = area` (36+ m²) | +5 |
+| `city = Toshkent\|Samarqand` | +5 |
+| `GUEST, willAttend = true` | +15 |
+| `GUEST, willAttend = false` | +5 |
+
+**Tier:** `HOT ≥ 70`, `WARM 40-69`, `COLD < 40`. Ball `Registration.leadScore`,
+tier `Registration.leadTier` (string). Lead guruh xabarida HOT lead
+🚨🚨🚨 header bilan belgilanadi (1 soat ichida bog'lanish eslatmasi).
+
+---
+
+## Marketing automation (Stage 4)
+
+DB-driven sequences (avval hardcode edi, endi admin panel orqali tahrirlanadi):
+
+- **`nudge_unregistered`** — 3 ta step, 3h / 24h / 72h
+  (bot ochgan, lekin formani yakunlamagan foydalanuvchilar uchun)
+- **`followup_registered`** — 1 ta step, 24h
+  (ro'yxatdan o'tganlarga minnatdorlik + do'stga ulashish)
+
+Scheduler har **30 daqiqada** ishlaydi. Matn va vaqtlarni admin panel →
+Ketma-ketliklar orqali o'zgartirsangiz, keyingi tick'da yangi matn
+ishlatiladi (kod o'zgartirish shart emas).
+
+Server start bo'lganda `seedDefaultSequences()` avtomatik chaqiriladi
+(idempotent). Yangi sequence qo'shish uchun `services/seed.ts` ga
+qo'shing yoki kelajakda admin UI orqali.
+
+---
+
+## Analytics (Stage 4)
+
+`Event` modeli: `app_open`, `screen_view`, `cta_click`, `role_select`,
+`field_focus`, `submit_success`, `submit_error`, va h.k. — webapp
+`lib/analytics.ts` orqali yig'iladi. Batch (10 event yoki 5s),
+`sendBeacon` visibilitychange/pagehide da.
+
+**Endpoint:** `POST /api/webapp/track` — initData yoki anonymousId,
+server tomonida 60 event/60s rate limit per IP.
+
+**Funnel:** Dashboard da `appOpens → landings → roleSelects → submits`
+(7 kunlik oyna) — konversiya va drop-off darhol ko'rinadi.
+
+---
+
+## Yangi env o'zgaruvchilar (Stage 2+)
+
+`.env` ga qo'shing (ixtiyoriy, default qiymatlar bor):
+
+```bash
+# Admin panel
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=<kamida 8 belgi>
+
+# ixtiyoriy — qat'iy CORS (default: open, initData auth bilan)
+CORS_ORIGIN=https://your-domain.com
+
+# Stage 7: admin panel IP allowlist (ixtiyoriy, default: open)
+# Bo'sh = hammaga ruxsat. 'any' = aniq disable. Misol:
+# ADMIN_IP_ALLOWLIST="213.230.121.5, 92.38.0.0/16, 2001:db8::/32"
+ADMIN_IP_ALLOWLIST=
+```
+
+**Muhim:** `BOT_TOKEN`, `DATABASE_URL`, `WEBAPP_URL`, `LEADS_GROUP_CHAT_ID`
+Stage 0 dan beri kerak; qolgan `AMOCRM_*` ixtiyoriy (bo'lmasa leadlar
+faqat guruhga tushadi).
+
+---
+
+## Deploy
+
+### Fly.io (production, tavsiya)
+
+```bash
+cd ~/fooderabot
+git fetch origin
+git checkout arena/01a06223-fooderabot
+fly deploy -a fooderabot-api           # repo ROOT'idan (root Dockerfile)
+fly scale count 1 -a fooderabot-api   # 2 ta machine bo'lsa (409 Conflict oldini olish)
+fly logs -a fooderabot-api            # tail logs
+fly secrets list -a fooderabot-api    # secretlar ro'yxati
+```
+
+**Muhim eslatmalar:**
+- `fly scale count 1` — **bitta machine**, aks holda Telegram bot
+  polling da 409 Conflict qaytaradi va restart loop ga tushadi.
+- Region `fra` (Frankfurt) — O'zbekistondan eng yaqin.
+- Machine: shared-cpu-1x, 512MB RAM, $0/month (free tier).
+- Health check: `/health` endpoint, 30s interval.
+- Single-origin: `https://fooderabot-api.fly.dev` — Mini App ham,
+  API ham, `/admin` ham shu URL da.
+
+**Birinchi admin yaratish (production):**
+```bash
+fly ssh console -a fooderabot-api
+cd /app/backend
+npx tsx scripts/createAdmin.ts admin <kuchli_parol>
+```
+
+### Database migration (yangi model qo'shganda)
+
+```bash
+fly ssh console -a fooderabot-api
+cd /app/backend
+npx prisma migrate deploy
+```
+
+`prisma migrate deploy` **additive** migration qo'llaydi (mavjud
+ma'lumot buzilmaydi). Yangi migration fayllari `backend/prisma/migrations/`
+ostida. Stage 2, Stage 4 da 3 ta additive migration qo'shildi.
+
+### Lokal dev (Docker compose)
+
+```bash
+cp backend/.env.example backend/.env  # to'ldiring
+docker compose up -d --build
+```
+
+Postgres, backend (bot + API) va nginx orqali webapp konteynerlari
+ko'tariladi. Nginx `/api/*` ni backend ga proxy qiladi.
+
+---
+
+## Stage holati
+
+| Stage | Holat | Asosiy natija |
+|---|---|---|
+| 0 — Audit | ✅ | `docs/stage-0-audit.md` (production holatining to'liq xaritasi) |
+| 1 — Editorial landing | ✅ | Yangi landing (qora-oltin), 4 stend paketi, 201 i18n kalit |
+| 2 — Journey + scoring | ✅ | StandForm 4-step (shahar), lead score (HOT/WARM/COLD) |
+| 3 — Motion + sound | ✅ | Haptic, WebAudio (0 KB), count-up, screen transitions |
+| 4 — Backend analytics + admin | ✅ | Event model, track endpoint, sequences, admin auth |
+| 5 — Admin panel UI | ✅ | Login, dashboard, leads, sequences, audit, CSV |
+| 6 — Hardening + QA | ✅ | Rate limit, security headers, README, deploy hujjati |
+| 7 — Marketing engine | ✅ | Broadcast composer, workflow engine, AVIF images, argon2id, IP allowlist |
+
+**Total:** 25+ commit, 5 ta additive migration, 9 ta yangi model,
+359 i18n kalit, 78 KB gzip Mini App + 8 KB alohida admin chunk.
+
+---
+
+## Marketing engine (Stage 7)
+
+### Broadcast (rassilka)
+- Admin `/admin` → "Rassilka" — 3 tilda composer, 8 ta segment
+  preset chip (Barcha / Stand / Mehmon / HOT / Toshkent / Samarqand /
+  Telefon / Oxirgi 7 kun), ixtiyoriy rasm (bot token orqali Telegram'ga
+  yuklanadi, file_id saqlanadi), "Hozir yuborish" yoki "Belgilangan
+  vaqtda"
+- Inline 3-til preview (Telegram bubble ko'rinishida)
+- Scheduler: 30s tick, ≤25 msg/s (40ms delay)
+- Progress bar (real-time poll 5s), cancel button
+- Audience 0 bo'lsa — "auditoriya bo'sh" ogohlantirish, broadcast DONE
+
+### Workflow
+- Trigger: `new_lead` / `lead_hot` / `drop_off` / `manual`
+- Conditions: type/leadTier/city/language/hasPhone/minScore
+- Actions: `send_message` (3 til), `tag_user`, `notify_admins`
+  (guruhga yuborish)
+- Idempotent — bir xil workflow bir xil user/event uchun 1 marta
+- Default workflow'lar avtomatik seed:
+  - "HOT lead → ping admins" — yangi HOT leadda guruhga 🚨
+  - "Drop-off 24h → tag" — 24 soat ichida registratsiya qilmagan
+    userlarni belgilash (keyin broadcast bilan targ'ib qilish)
+
+### Xavfsizlik (Stage 7)
+- **argon2id** parol hash (m=19MiB, t=2, p=1, OWASP 2023+). Eski
+  PBKDF2 hashlari avtomatik argon2id ga upgrade (login ulanganda
+  transparent).
+- **IP allowlist** (`ADMIN_IP_ALLOWLIST`): IPv4/IPv6, CIDR, `any`.
+  Default fail-open. Production'da ofis+uy IP'larini belgilang.
+- Rate limit: track 60/min, submit 10/min, login 5/min, IP allowlist
+  qo'shimcha qatlam sifatida ishlaydi.
+
+### Image optimallashtirish
+- `npm run build` `scripts/optimize-images.mjs` ni ishga tushiradi
+  (sharp asosida)
+- Hero rasm: 260 KB JPG → 80 KB AVIF / 159 KB WebP (budget ≤120 KB)
+- Bayroqlar: o'rtacha 18 KB → 2-3 KB
+- `<picture>` elementi brauzerni eng yengil formatga yo'naltiradi

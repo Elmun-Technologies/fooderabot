@@ -37,6 +37,7 @@ function buildNote(r: RegistrationForCrm): string {
     `Lavozim: ${r.position}`,
     r.phone ? `Telefon: ${r.phone}` : null,
     r.companyName ? `Kompaniya nomi: ${r.companyName}` : null,
+    r.city ? `Shahar: ${r.city}` : null,
     r.companyYears ? `Faoliyat yuritish muddati: ${r.companyYears}` : null,
     r.companyActivity ? `Faoliyat turi: ${r.companyActivity}` : null,
     // New values are booth-type labels ("Premium stend · 18 m²"); legacy rows are plain numbers.

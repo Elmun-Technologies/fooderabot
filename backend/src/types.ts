@@ -14,4 +14,6 @@ export interface SubmitRegistrationBody {
   /** Booth type label, e.g. "Premium stend · 18 m²" (legacy rows: plain number). */
   spaceNeeded?: string;
   willAttend?: boolean;
+  /** Stage-2: city the company operates from (STAND only, required). */
+  city?: string;
 }

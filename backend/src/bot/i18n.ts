@@ -5,9 +5,9 @@ export const botText = {
 
   warmup(language: Language): string {
     const msg: Record<Language, string> = {
-      uz: "FOODERA EXPO 2026 — Markaziy Osiyodagi eng yirik oziq-ovqat va ichimlik ko'rgazmasi.\n\n📅 20–22 oktabr, 2026\n📍 SOF EXPO, Samarqand\n👥 125M+ iste'molchi bozori, 6 mamlakat, $58–78 mlrd bozor hajmi\n\nBu yerda yetkazib beruvchilar, ishlab chiqaruvchilar va xaridorlar bir joyda uchrashadi. Ro'yxatdan o'tish atigi 30 sekunda — hoziroq boshlaymizmi?",
-      ru: "FOODERA EXPO 2026 — крупнейшая продовольственная выставка Центральной Азии.\n\n📅 20–22 октября 2026\n📍 SOF EXPO, Самарканд\n👥 Рынок с 125M+ потребителей, 6 стран, объём $58–78 млрд\n\nЗдесь встречаются поставщики, производители и байеры. Регистрация — всего 30 секунд, начнём?",
-      en: "FOODERA EXPO 2026 — Central Asia's major food & beverage expo.\n\n📅 October 20–22, 2026\n📍 SOF EXPO, Samarkand\n👥 A market of 125M+ consumers, 6 countries, $58–78B market size\n\nSuppliers, producers and buyers meet here in one place. Registration takes 30 seconds — shall we start?",
+      uz: "FOODERA EXPO 2026 — Markaziy Osiyodagi oziq-ovqat va ichimlik ko'rgazmasi.\n\n📅 20–22 oktabr, 2026\n📍 SOF EXPO, Samarqand\n\nYetkazib beruvchilar, ishlab chiqaruvchilar va xaridorlar uchun uchrashuv maydoni. Ro'yxatdan o'tish atigi 30 sekunda — hoziroq boshlaymizmi?",
+      ru: "FOODERA EXPO 2026 — выставка продуктов питания и напитков в Центральной Азии.\n\n📅 20–22 октября 2026\n📍 SOF EXPO, Самарканд\n\nМесто встречи поставщиков, производителей и байеров. Регистрация — всего 30 секунд, начнём?",
+      en: "FOODERA EXPO 2026 — a food and beverage exhibition in Central Asia.\n\n📅 October 20–22, 2026\n📍 SOF EXPO, Samarkand\n\nA meeting point for suppliers, producers and buyers. Registration takes 30 seconds — shall we start?",
     };
     return msg[language];
   },

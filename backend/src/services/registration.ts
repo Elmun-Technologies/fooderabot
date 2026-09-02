@@ -3,6 +3,8 @@ import { notifyRegistrationConfirmed } from "../bot/bot";
 import { notifyLeadsGroup } from "../bot/leadsGroup";
 import { prisma } from "../db";
 import { createLeadForRegistration } from "./amocrm";
+import { computeLeadScore } from "./leadScoring";
+import { onRegistrationCreated } from "./workflow";
 import type { SubmitRegistrationBody } from "../types";
 import type { TelegramWebAppUser } from "../lib/validateInitData";
 
@@ -41,6 +43,7 @@ export async function checkRegistration(tgUser: TelegramWebAppUser) {
     companyActivity: r?.companyActivity ?? undefined,
     spaceNeeded: r?.spaceNeeded ?? undefined,
     willAttend: r?.willAttend ?? undefined,
+    city: r?.city ?? undefined,
   };
 }
 
@@ -67,6 +70,7 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
         companyActivity: body.companyActivity,
         spaceNeeded: body.spaceNeeded,
         willAttend: body.willAttend,
+        city: body.city,
       },
     });
   } catch (err) {
@@ -75,6 +79,15 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
     }
     throw err;
   }
+
+  // Stage-2: compute the lead score and tier right after the row lands.
+  // The leads-group message uses these to flag HOT leads and the admin
+  // panel (Stage 5) will sort/filter by them.
+  const scoring = computeLeadScore(body);
+  registration = await prisma.registration.update({
+    where: { id: registration.id },
+    data: { leadScore: scoring.score, leadTier: scoring.tier },
+  });
 
   try {
     const { leadId, contactId } = await createLeadForRegistration({
@@ -108,6 +121,12 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
 
   await notifyLeadsGroup(registration, user).catch((err) => {
     console.error("Failed to notify leads group", err);
+  });
+
+  // Stage 7: fire workflow engine (new_lead + lead_hot triggers).
+  // Fire-and-forget — workflow errors must never block the response.
+  void onRegistrationCreated(user.id, registration.id).catch((err) => {
+    console.error("Workflow engine failed for registration", registration.id, err);
   });
 
   return registration;

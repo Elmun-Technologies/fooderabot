@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { t, type Language } from "../i18n";
-import { CATEGORY_OPTIONS, POSITION_OPTIONS, STAND_TYPE_OPTIONS, YEARS_OPTIONS, optionLabel } from "../lib/event";
+import {
+  CATEGORY_OPTIONS,
+  CITY_OPTIONS,
+  POSITION_OPTIONS,
+  STAND_TYPE_OPTIONS,
+  YEARS_OPTIONS,
+  optionLabel,
+} from "../lib/event";
+import { haptics } from "../lib/haptics";
 import { isValidPhone } from "../lib/telegram";
 import { Chips } from "./Chips";
 import { PhoneField } from "./PhoneField";
@@ -13,8 +21,11 @@ export interface StandFormValues {
   companyName: string;
   companyYears: string;
   companyActivity: string;
-  spaceNeeded: string; // stand type label, e.g. "Premium stend · 18 m²"
+  /** Booth type label, e.g. "Premium stend · 18 m²" */
+  spaceNeeded: string;
   phone: string;
+  /** Stage-2: home city of the company (one of CITY_OPTIONS keys). */
+  city: string;
 }
 
 const EMPTY: StandFormValues = {
@@ -25,14 +36,20 @@ const EMPTY: StandFormValues = {
   companyActivity: "",
   spaceNeeded: "",
   phone: "",
+  city: "",
 };
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 /**
- * Booth application in three short steps: category → contact details →
- * booth & phone. Every question is one tap (chips) or one short input,
+ * Booth application in four short steps: category → city → contact details
+ * → booth & phone. Every question is one tap (chips) or one short input,
  * with the submit button framed by trust microcopy.
+ *
+ * The city question (step 2) is Stage 2's intent-capture addition: it
+ * feeds the backend lead-scoring engine and helps the sales team plan
+ * logistics near the prospect. "Boshqa" is allowed and falls back to a
+ * free-form city stored verbatim.
  */
 export function StandForm({
   language,
@@ -48,18 +65,35 @@ export function StandForm({
   /** Pre-filled values when returning from an error screen (no re-typing). */
   initial?: Partial<StandFormValues>;
 }) {
-  const [step, setStep] = useState(initial?.companyActivity ? (initial.companyYears || initial.spaceNeeded || initial.phone ? 3 : 2) : 1);
+  // Pick the right starting step from the initial state so a user who
+  // got bounced back from a network error resumes where they were.
+  const initialStep = (() => {
+    if (!initial) return 1;
+    if (initial.companyYears || initial.spaceNeeded || initial.phone) return 4;
+    if (initial.fullName || initial.companyName || initial.position) return 3;
+    if (initial.city) return 2;
+    if (initial.companyActivity) return 2;
+    return 1;
+  })();
+  const [step, setStep] = useState(initialStep);
   const [values, setValues] = useState<StandFormValues>({ ...EMPTY, ...initial });
   const [touched, setTouched] = useState(false);
 
   const set = (key: keyof StandFormValues) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }));
+  /** Wrap a chip's onChange so the user gets a soft haptic on every pick. */
+  const pick = (key: keyof StandFormValues) => (v: string) => {
+    haptics.select();
+    set(key)(v);
+  };
 
   const category = CATEGORY_OPTIONS.find((o) => o.key === values.companyActivity);
   const position = POSITION_OPTIONS.find((o) => o.key === values.position);
   const standType = STAND_TYPE_OPTIONS.find((o) => o.key === values.spaceNeeded);
   const years = YEARS_OPTIONS.find((o) => o.key === values.companyYears);
+  const city = CITY_OPTIONS.find((o) => o.key === values.city);
 
   const categoryError = touched && !category ? t(language, "selectRequired") : undefined;
+  const cityError = touched && !city ? t(language, "cityRequired") : undefined;
   const fullNameError = touched && !values.fullName.trim() ? t(language, "required") : undefined;
   const companyNameError = touched && !values.companyName.trim() ? t(language, "required") : undefined;
   const positionError = touched && !position ? t(language, "selectRequired") : undefined;
@@ -68,21 +102,34 @@ export function StandForm({
   const phoneError = touched && !isValidPhone(values.phone) ? t(language, "phoneInvalid") : undefined;
 
   const step1Valid = Boolean(category);
-  const step2Valid = Boolean(category && position && values.fullName.trim() && values.companyName.trim());
-  const step3Valid = step2Valid && Boolean(standType && years && isValidPhone(values.phone));
+  const step2Valid = step1Valid && Boolean(city);
+  const step3Valid = step2Valid && Boolean(position && values.fullName.trim() && values.companyName.trim());
+  const step4Valid = step3Valid && Boolean(standType && years && isValidPhone(values.phone));
 
   function goNext() {
     setTouched(true);
     if (step === 1 && step1Valid) {
+      haptics.confirm();
       setTouched(false);
       setStep(2);
     } else if (step === 2 && step2Valid) {
+      haptics.confirm();
       setTouched(false);
       setStep(3);
+    } else if (step === 3 && step3Valid) {
+      haptics.confirm();
+      setTouched(false);
+      setStep(4);
+    } else {
+      haptics.error();
     }
   }
 
-  const back = () => (step === 1 ? onBack() : setStep(step - 1));
+  const back = () => {
+    haptics.tap();
+    if (step === 1) onBack();
+    else setStep(step - 1);
+  };
 
   const payload = (): StandFormValues => ({
     ...values,
@@ -101,13 +148,26 @@ export function StandForm({
           <Chips
             options={CATEGORY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
             value={values.companyActivity}
-            onChange={set("companyActivity")}
+            onChange={pick("companyActivity")}
             error={categoryError}
           />
         </div>
       ) : null}
 
       {step === 2 ? (
+        <div className="form-step">
+          <p className="question">{t(language, "cityTitle")}</p>
+          <p className="question__sub">{t(language, "citySubtitle")}</p>
+          <Chips
+            options={CITY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
+            value={values.city}
+            onChange={pick("city")}
+            error={cityError}
+          />
+        </div>
+      ) : null}
+
+      {step === 3 ? (
         <div className="form-step">
           <TextField
             label={t(language, "fullName")}
@@ -121,7 +181,7 @@ export function StandForm({
             <Chips
               options={POSITION_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.position}
-              onChange={set("position")}
+              onChange={pick("position")}
               error={positionError}
             />
           </div>
@@ -135,7 +195,7 @@ export function StandForm({
         </div>
       ) : null}
 
-      {step === 3 ? (
+      {step === 4 ? (
         <div className="form-step">
           <div className="field">
             <span className="field__label">{t(language, "standTypeTitle")}</span>
@@ -143,7 +203,7 @@ export function StandForm({
             <Chips
               options={STAND_TYPE_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.spaceNeeded}
-              onChange={set("spaceNeeded")}
+              onChange={pick("spaceNeeded")}
               error={standTypeError}
               columns={1}
             />
@@ -153,7 +213,7 @@ export function StandForm({
             <Chips
               options={YEARS_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.companyYears}
-              onChange={set("companyYears")}
+              onChange={pick("companyYears")}
               error={yearsError}
             />
           </div>
@@ -174,7 +234,12 @@ export function StandForm({
               disabled={submitting}
               onClick={() => {
                 setTouched(true);
-                if (step3Valid) onSubmit(payload());
+                if (step4Valid) {
+                  haptics.confirm();
+                  onSubmit(payload());
+                } else {
+                  haptics.error();
+                }
               }}
             >
               {submitting ? t(language, "loading") : t(language, "submit")}

@@ -1,11 +1,24 @@
 import { bot } from "./bot/bot";
 import { startFollowUpScheduler } from "./bot/followups";
+import { startBroadcastScheduler } from "./services/broadcast";
+import { startWorkflowScheduler } from "./services/workflow";
 import { createServer } from "./api/server";
 import { config } from "./config";
+import { seedDefaultSequences, seedDefaultWorkflows } from "./services/seed";
 
 const skipBot = process.env.SKIP_BOT === "1" || process.env.SKIP_BOT === "true";
 
 async function main() {
+  // Stage 4: seed the default marketing sequences (idempotent).
+  await seedDefaultSequences().catch((err) => {
+    console.error("Failed to seed default sequences", err);
+  });
+
+  // Stage 7: seed the default marketing workflows (idempotent).
+  await seedDefaultWorkflows().catch((err) => {
+    console.error("Failed to seed default workflows", err);
+  });
+
   const app = createServer();
   app.listen(config.port, () => {
     console.log(`API server listening on port ${config.port}`);
@@ -19,6 +32,12 @@ async function main() {
 
     startFollowUpScheduler();
     console.log("Follow-up scheduler started");
+
+    startBroadcastScheduler();
+    console.log("Broadcast scheduler started");
+
+    startWorkflowScheduler();
+    console.log("Workflow scheduler started");
   }
 
   // With SKIP_BOT the bot was never launched, so bot.stop() would throw.

@@ -7,12 +7,14 @@
     "dev": "tsx watch src/index.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "admin:create": "tsx scripts/createAdmin.ts",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate deploy",
     "prisma:migrate:dev": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^5.20.0",
+    "argon2": "^0.45.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.0",

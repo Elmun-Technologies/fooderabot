@@ -28,7 +28,7 @@ export function GuestForm({
   language: Language;
   submitting: boolean;
   onBack: () => void;
-  onSubmit: (values: GuestFormValues) => void;
+  onSubmit: (values: GuestFormValues, raw: GuestFormValues) => void;
   /** Pre-filled values when returning from an error screen (no re-typing). */
   initial?: Partial<GuestFormValues>;
 }) {
@@ -45,6 +45,14 @@ export function GuestForm({
   };
 
   const positionOption = POSITION_OPTIONS.find((o) => o.key === position);
+  /** Option keys, so returning from an error screen re-selects the same chip. */
+  const raw = (): GuestFormValues => ({
+    position,
+    fullName,
+    companyName: companyName.trim() || undefined,
+    willAttend: true,
+    phone: phone.trim() || undefined,
+  });
   const fullNameError = touched && !fullName.trim() ? t(language, "required") : undefined;
   const positionError = touched && !positionOption ? t(language, "selectRequired") : undefined;
   const detailsValid = Boolean(positionOption) && fullName.trim().length > 0;
@@ -65,13 +73,16 @@ export function GuestForm({
             disabled={submitting}
             onClick={() => {
               haptics.confirm();
-              onSubmit({
-                position: positionOption ? optionLabel(language, positionOption) : "",
-                fullName,
-                companyName: companyName.trim() || undefined,
-                willAttend: true,
-                phone: isValidPhone(phone) ? phone.trim() : undefined,
-              });
+              onSubmit(
+                {
+                  position: positionOption ? optionLabel(language, positionOption) : "",
+                  fullName,
+                  companyName: companyName.trim() || undefined,
+                  willAttend: true,
+                  phone: isValidPhone(phone) ? phone.trim() : undefined,
+                },
+                raw(),
+              );
             }}
           >
             {submitting ? t(language, "loading") : t(language, "willAttendYes")}
@@ -82,13 +93,16 @@ export function GuestForm({
             disabled={submitting}
             onClick={() => {
               haptics.tap();
-              onSubmit({
-                position: positionOption ? optionLabel(language, positionOption) : "",
-                fullName,
-                companyName: companyName.trim() || undefined,
-                willAttend: false,
-                phone: isValidPhone(phone) ? phone.trim() : undefined,
-              });
+              onSubmit(
+                {
+                  position: positionOption ? optionLabel(language, positionOption) : "",
+                  fullName,
+                  companyName: companyName.trim() || undefined,
+                  willAttend: false,
+                  phone: isValidPhone(phone) ? phone.trim() : undefined,
+                },
+                raw(),
+              );
             }}
           >
             {t(language, "willAttendNo")}

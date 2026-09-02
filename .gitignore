@@ -6,3 +6,6 @@ build/
 *.log
 .DS_Store
 *.tsbuildinfo
+
+# SSR smoke-test build output (npm run check-render)
+webapp/.smoke/

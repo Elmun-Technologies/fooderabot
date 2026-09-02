@@ -61,19 +61,27 @@ export function StandForm({
   language: Language;
   submitting: boolean;
   onBack: () => void;
-  onSubmit: (values: StandFormValues) => void;
-  /** Pre-filled values when returning from an error screen (no re-typing). */
+  onSubmit: (values: StandFormValues, raw: StandFormValues) => void;
+  /**
+   * Pre-filled values. Two callers use this: returning from an error screen
+   * (everything already answered) and the landing page, where tapping a
+   * direction tile or a package card carries that answer into the form.
+   *
+   * The chip options are keyed, so `raw` holds option keys while the payload
+   * sent to the API holds the localized label the user actually read.
+   */
   initial?: Partial<StandFormValues>;
 }) {
-  // Pick the right starting step from the initial state so a user who
-  // got bounced back from a network error resumes where they were.
+  // Resume where the answers actually run out. Walking the four questions in
+  // order (instead of "whichever field is set") means a pre-filled landing-page
+  // answer lands the user on the *next* open question, and an error retry never
+  // drops them on the last step with three empty fields above it.
   const initialStep = (() => {
     if (!initial) return 1;
-    if (initial.companyYears || initial.spaceNeeded || initial.phone) return 4;
-    if (initial.fullName || initial.companyName || initial.position) return 3;
-    if (initial.city) return 2;
-    if (initial.companyActivity) return 2;
-    return 1;
+    if (!initial.companyActivity) return 1;
+    if (!initial.city) return 2;
+    if (!initial.position || !initial.fullName?.trim() || !initial.companyName?.trim()) return 3;
+    return 4;
   })();
   const [step, setStep] = useState(initialStep);
   const [values, setValues] = useState<StandFormValues>({ ...EMPTY, ...initial });
@@ -236,7 +244,7 @@ export function StandForm({
                 setTouched(true);
                 if (step4Valid) {
                   haptics.confirm();
-                  onSubmit(payload());
+                  onSubmit(payload(), values);
                 } else {
                   haptics.error();
                 }

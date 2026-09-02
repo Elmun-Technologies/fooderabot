@@ -4,6 +4,7 @@ import { notifyLeadsGroup } from "../bot/leadsGroup";
 import { prisma } from "../db";
 import { createLeadForRegistration } from "./amocrm";
 import { computeLeadScore } from "./leadScoring";
+import { invalidateLiveSnapshot } from "./liveStats";
 import { onRegistrationCreated } from "./workflow";
 import type { SubmitRegistrationBody } from "../types";
 import type { TelegramWebAppUser } from "../lib/validateInitData";
@@ -79,6 +80,11 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
     }
     throw err;
   }
+
+  // The landing page shows live counters (booths booked, "applied today"), so
+  // a fresh lead has to invalidate the cached snapshot - otherwise the page
+  // keeps advertising a number that is already a minute stale.
+  invalidateLiveSnapshot();
 
   // Stage-2: compute the lead score and tier right after the row lands.
   // The leads-group message uses these to flag HOT leads and the admin

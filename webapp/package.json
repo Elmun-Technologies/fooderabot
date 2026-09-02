@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "npm run optimize-images && tsc -b && vite build",
     "optimize-images": "node scripts/optimize-images.mjs",
-    "preview": "vite preview"
+    "check-i18n": "node scripts/check-i18n.mjs",
+    "preview": "vite preview",
+    "check-render": "vite build --ssr scripts/render-smoke.tsx --outDir .smoke --logLevel error && node .smoke/render-smoke.js"
   },
   "dependencies": {
     "react": "^18.3.1",

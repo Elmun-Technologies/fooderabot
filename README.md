@@ -29,6 +29,8 @@ webapp/    React + TypeScript + Vite — Telegram Mini App
            - StandForm 4-step (kategoriya → shahar → kontakt → stend+telefon)
            - Telefon 1 tap (Telegram'dan, WebApp.requestContact)
            - WebAudio sound engine, haptic feedback, count-up animatsiya
+           - Jonli qatlam: lib/countdown.ts, lib/live.ts, lib/motion.ts,
+             lib/content.ts (uz/ru/en uchliklari), lib/ics.ts (.ics eksport)
            - Analytics client (batch, sendBeacon, anonymousId)
 
 docs/      Stage 0 audit + roadmap (production holatining to'liq xaritasi)
@@ -42,7 +44,7 @@ docs/      Stage 0 audit + roadmap (production holatining to'liq xaritasi)
 - **Ijtimoiy isbot**: 125M+ iste'molchi, 6 mamlakat, $58–78 mlrd bozor + Markaziy
   Osiyo bayroqlari (saytdagi ma'lumotlar).
 - **Ishonch mikromatni**: "30 sekunda · Hozir to'lov yo'q · 24 soat ichida javob".
-- **Erkin matn o'rniga tanlovlar**: yo'nalish (12 toifa), lavozim, stend turi
+- **Erkin matn o'rniga tanlovlar**: yo'nalish (13 toifa), lavozim, stend turi
   (Premium 18 m² / Standart 9 m² / Maydon 36 m²+ / Aniq emas), faoliyat yili —
   hammasi bitta tap. Natijada amoCRMga toza, segmentatsiya qilinadigan ma'lumot tushadi.
 - **Telefon 1 ta tugma bilan**: `WebApp.requestContact` orqali Telegram profildagi
@@ -51,6 +53,16 @@ docs/      Stage 0 audit + roadmap (production holatining to'liq xaritasi)
   device sifatida ishlaydi.
 - **Success ekranda "Keyin nima bo'ladi?"**: 3 qadamli kutish boshqaruvi + "Do'stlarga
   yuborish" (viral loop).
+- **Jonli ijtimoiy isbot (Stage 8)**: oxirgi 72 soatdagi arizalar, bugungi son,
+  band stendlar metri va shahar/kategoriya kesimi — `GET /api/webapp/live`dan.
+  Ma'lumot kelmasa **raqam o'ylab topilmaydi**: blok statik faktlarga qaytadi va
+  halol "server javob bermayapti" banner'i ko'rsatiladi.
+- **Landing = funnelsa**: yo'nalish kartosi, paket va zal katakchisi bosilganda
+  javob ariza formasi ichiga kiradi (bo'sh savoldan davom etadi).
+- **Zarurlik o'lchangan**: countdown sekund bilan va fazaga mos (bosqich/boshlandi/
+  tugadi), "38 ta premium stend" sig'imi esa bazadagi bandlar ayirmasidan chiqadi.
+- **Harakat — maqsadli**: scroll-reveal, count-up, marquee, spotlight, magnetic,
+  Ken Burns; hammasi `prefers-reduced-motion` bilan o'chadi (`docs/stage-8-live.md`).
 
 ## Foydalanuvchi oqimi
 
@@ -61,10 +73,15 @@ docs/      Stage 0 audit + roadmap (production holatining to'liq xaritasi)
 4. Aks holda, bot "Ro'yxatdan o'tish" tugmasi bilan Web App'ni ochadi.
 5. Web App ichida:
    - **Til tanlanadi** (UZ/RU/EN) — logo bilan birga.
-   - **Event landing**: foto + logo, sana/joy, countdown, statistika, bayroqlar, galereya.
+   - **Event landing** (editorial): hero + countdown, jonli ariza tasmasi, bo'limlar
+     navigatsiyasi, 13 yo'nalish, 3 kunlik dastur, bozor tahlili, zal sxemasi,
+     logistika, auditoriya, paketlar, savol-javob, menejer bloki. Sahna haqida
+     to'liq: `docs/stage-8-live.md`.
    - **Stend yoki mehmon** tanlanadi.
-   - **Stend** tanlansa (3 qadam): yo'nalish toifasi → ism, lavozim, kompaniya →
-     stend turi, faoliyat yili, telefon (Telegram'dan 1 tap). Barchasi **majburiy**.
+   - **Stend** tanlansa (4 qadam): yo'nalish toifasi → shahar → ism, lavozim,
+     kompaniya → stend turi, faoliyat yili, telefon (Telegram'dan 1 tap). Barchasi **majburiy**.
+     Landing'da yo'nalish yoki paket kartasini bosish o'sha javobni forma
+     oldidan olib kiradi va keyingi bo'sh savoldan davom etadi.
    - **Mehmon** tanlansa: ism, lavozim, kompaniya (ixtiyoriy), telefon (ixtiyoriy),
      so'ng — "Tadbir kuni albatta kelasizmi?" tasdiqlash bosqichi, maxsus beydjik va'dasi bilan.
 6. Forma yuborilganda backend Telegram `initData`ni HMAC orqali tasdiqlaydi (soxta
@@ -192,13 +209,32 @@ HTTPS ortida ishga tushiring).
 
 ## Event ma'lumotlari va kontenti
 
-- Event faktalari (sana, joy, bozor raqamlari) `webapp/src/lib/event.ts` va
-  `webapp/src/i18n/locales/*.json` fayllarida — sana yoki joy o'zgarsa shu
-  fayllarni tahrirlash kifoya. Countdown `2026-10-20T09:00+05:00` gacha sanaydi
-  (`webapp/src/components/Landing.tsx`).
-- Brend logotipi: `webapp/public/logo.png`. Hero fonidagi illustratsiya:
-  `webapp/public/assets/hero-illustration.jpg` — haqiqiy expo fotosi paydo
-  bo'lsa shu faylni almashtiring (komponent o'zgartirish shart emas).
+- Event faktalari (sana, joy, bozor raqamlari) `webapp/src/lib/event.ts` (form
+  variantlari + inventar), `webapp/src/lib/content.ts` (uzun kontent: dastur,
+  auditoriya, zal zonalari, transport — har biri `uz/ru/en` uchtilikda) va
+  `webapp/src/i18n/locales/*.json` (UI matnlari) fayllarida.
+- Sana/joy o'zgarsa: `webapp/src/lib/countdown.ts` (`EVENT_START_MS` /
+  `EVENT_END_MS`) + `webapp/src/lib/content.ts` (`EVENT_FACTS`) + `lib/event.ts`
+  — countdown, `.ics` fayl va zal rejasi hammasi shu bitta manbadan oladi.
+- **Jonli feed**: `GET /api/webapp/live` (backend, auth talab qilmaydi,
+  server-side 60 s cache) → `webapp/src/lib/live.ts` har 45 s da yangilaydi.
+  Landing'dagi barcha raqamlar (bugungi arizalar, band stendlar, shaharlar
+  kesimi, "endigina ro'yxatdan o'tdi" tasmasi) shu yerdan keladi. Endpoint
+  ishlamasa — hech qanday raqam o'ylab topilmaydi: blok statik faktlarga
+  qaytadi va "server javob bermayapti" banneri ko'rinadi.
+  Inventar: `SITE_STAND_INVENTORY` env orqali (0 = blok yashirin).
+- Xavfsizlik/privacy: `/live` faqat aggregate sonlar va **faqat ismning bosh
+  harfi**ni qaytaradi, faqat oxirgi 72 soatlik yozuvlar (telefon, email, UTM
+  yo'q). Rate limit: 40 so'rov/daqiqa/IP.
+- Brend logotipi: `webapp/public/logo.png`. Hero illustratsiyasi:
+  `webapp/public/assets/hero-illustration.jpg`, zal vizualizatsiyasi:
+  `webapp/public/assets/venue-hall.jpg` — haqiqiy expo fotosi paydo bo'lsa shu
+  fayllarni almashtiring va `npm run optimize-images` ni ishga tushiring
+  (WebP/AVIF variantlarini qayta yasadida; `<picture>` avtomatik oladi).
+- `npm run check-i18n` — uch locale pariteti + barcha `t()` kalitlari mavjudligi.
+- `npm run check-render` — barcha ekranlar (landing 3 tilda, formalar, success)
+  SSR'da render qilinadi: biror komponent uzilsa yoki kalit matn o'rniga
+  `liveTagOn` kabi chiqib qolsa skript CI'ni buzadi.
 - Davlat bayroqlari `webapp/public/assets/flags/` ichida.
 
 ## Muhim texnik eslatmalar
@@ -416,9 +452,18 @@ ko'tariladi. Nginx `/api/*` ni backend ga proxy qiladi.
 | 5 — Admin panel UI | ✅ | Login, dashboard, leads, sequences, audit, CSV |
 | 6 — Hardening + QA | ✅ | Rate limit, security headers, README, deploy hujjati |
 | 7 — Marketing engine | ✅ | Broadcast composer, workflow engine, AVIF images, argon2id, IP allowlist |
+| 8 — Jonli qatlam + harakat | ✅ | `GET /api/webapp/live`, jonli tasdiq bloklari, motion/tick layer, dastur + zal sxemasi, `.ics`, `docs/stage-8-live.md` |
 
-**Total:** 25+ commit, 5 ta additive migration, 9 ta yangi model,
-359 i18n kalit, 78 KB gzip Mini App + 8 KB alohida admin chunk.
+**Total:** 30+ commit, 5 ta additive migration, 9 ta yangi model,
+443 i18n kalit, 103 KB gzip Mini App + 8 KB alohida admin chunk.
+
+### Tekshiruvlar (deploy/masalan oldidan)
+
+```bash
+cd webapp && npm run check-i18n    # 443 kalit × uz/ru/en + t() havolalari + content.ts uchliklari
+cd webapp && npm run check-render  # barcha ekranlarni 3 tilda SSR qilib render (props buzilsa fail)
+cd webapp && npm run build && cd ../backend && npm run check:live  # /live shakli, cache, PII sizmasi
+```
 
 ---
 

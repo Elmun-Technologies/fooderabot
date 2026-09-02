@@ -1,0 +1,49 @@
+import type { SubmitRegistrationBody } from "../types";
+
+const LANGUAGES = ["uz", "ru", "en"];
+const TYPES = ["STAND", "GUEST"];
+
+function isNonEmptyString(v: unknown): v is string {
+  return typeof v === "string" && v.trim().length > 0 && v.trim().length <= 500;
+}
+
+/** Returns an error message, or null if the body is valid. */
+export function validateSubmitBody(body: unknown): string | null {
+  if (!body || typeof body !== "object") return "Invalid body";
+  const b = body as Record<string, unknown>;
+
+  if (!TYPES.includes(b.type as string)) return "Invalid registration type";
+  if (!LANGUAGES.includes(b.language as string)) return "Invalid language";
+  if (!isNonEmptyString(b.position)) return "Position is required";
+  if (!isNonEmptyString(b.fullName)) return "Full name is required";
+
+  if (b.type === "STAND") {
+    if (!isNonEmptyString(b.companyName)) return "Company name is required for stand registrations";
+    if (!isNonEmptyString(b.companyYears)) return "Company years is required for stand registrations";
+    if (!isNonEmptyString(b.companyActivity)) return "Company activity is required for stand registrations";
+    if (!isNonEmptyString(b.spaceNeeded)) return "Space needed is required for stand registrations";
+  }
+
+  if (b.type === "GUEST") {
+    if (typeof b.willAttend !== "boolean") return "willAttend is required for guest registrations";
+  }
+
+  if (b.companyName !== undefined && typeof b.companyName !== "string") return "Invalid company name";
+
+  return null;
+}
+
+export function toSubmitBody(body: unknown): SubmitRegistrationBody {
+  const b = body as Record<string, unknown>;
+  return {
+    type: b.type as SubmitRegistrationBody["type"],
+    language: b.language as SubmitRegistrationBody["language"],
+    position: String(b.position).trim(),
+    fullName: String(b.fullName).trim(),
+    companyName: b.companyName ? String(b.companyName).trim() : undefined,
+    companyYears: b.companyYears ? String(b.companyYears).trim() : undefined,
+    companyActivity: b.companyActivity ? String(b.companyActivity).trim() : undefined,
+    spaceNeeded: b.spaceNeeded ? String(b.spaceNeeded).trim() : undefined,
+    willAttend: typeof b.willAttend === "boolean" ? b.willAttend : undefined,
+  };
+}

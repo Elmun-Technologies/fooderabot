@@ -777,3 +777,43 @@ adminRouter.delete("/workflows/:id", async (req, res) => {
   await writeAudit(user.id, "workflow_delete", req, id);
   res.json({ ok: true });
 });
+
+// --------------------------------------------------------------------------
+// Integrations status
+// --------------------------------------------------------------------------
+
+adminRouter.get("/integrations", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+
+  const amocrmConfigured = Boolean(process.env.AMOCRM_BASE_URL && process.env.AMOCRM_ACCESS_TOKEN);
+  const metaPixelConfigured = Boolean(process.env.VITE_META_PIXEL_ID);
+  const gaConfigured = Boolean(process.env.VITE_GA_MEASUREMENT_ID);
+  const leadsGroupConfigured = Boolean(process.env.LEADS_GROUP_CHAT_ID);
+
+  // Count failed syncs
+  const failedSyncs = await prisma.registration.count({ where: { status: "FAILED" } });
+  const syncedCount = await prisma.registration.count({ where: { status: "SYNCED" } });
+
+  res.json({
+    amocrm: {
+      configured: amocrmConfigured,
+      baseUrl: process.env.AMOCRM_BASE_URL || null,
+      pipelineId: process.env.AMOCRM_PIPELINE_ID || null,
+      syncedCount,
+      failedSyncs,
+    },
+    metaPixel: {
+      configured: metaPixelConfigured,
+      pixelId: process.env.VITE_META_PIXEL_ID || null,
+    },
+    googleAnalytics: {
+      configured: gaConfigured,
+      measurementId: process.env.VITE_GA_MEASUREMENT_ID || null,
+    },
+    leadsGroup: {
+      configured: leadsGroupConfigured,
+      chatId: process.env.LEADS_GROUP_CHAT_ID || null,
+    },
+  });
+});

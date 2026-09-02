@@ -359,5 +359,14 @@
   "adminWorkflowConfirmDelete": "Really delete?",
   "adminWorkflowEmpty": "No workflows yet",
   "adminWorkflowAny": "— any —",
-  "adminWorkflowAdd": "+ Add new workflow"
+  "adminWorkflowAdd": "+ Add new workflow",
+  "adminNavIntegrations": "Integrations",
+  "adminIntegrationsTitle": "Integrations status",
+  "adminIntegrationsSubtitle": "AmoCRM, Meta Pixel, Google Analytics and other services. Each integration is configured separately.",
+  "adminIntegrationUrl": "URL",
+  "adminIntegrationPipeline": "Pipeline ID",
+  "adminIntegrationSynced": "Synced",
+  "adminIntegrationFailed": "Failed",
+  "adminIntegrationEvents": "Events",
+  "adminIntegrationLeadsGroup": "Leads group"
 }

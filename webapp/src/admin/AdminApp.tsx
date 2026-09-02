@@ -37,6 +37,7 @@ type Section =
   | { name: "sequences" }
   | { name: "workflows" }
   | { name: "broadcasts" }
+  | { name: "integrations" }
   | { name: "audit" };
 
 const SECTIONS: { key: Section["name"]; labelKey: import("../i18n").TranslationKey }[] = [
@@ -45,6 +46,7 @@ const SECTIONS: { key: Section["name"]; labelKey: import("../i18n").TranslationK
   { key: "sequences", labelKey: "adminNavSequences" },
   { key: "workflows", labelKey: "adminNavWorkflows" },
   { key: "broadcasts", labelKey: "adminNavBroadcasts" },
+  { key: "integrations", labelKey: "adminNavIntegrations" },
   { key: "audit", labelKey: "adminNavAudit" },
 ];
 
@@ -54,7 +56,7 @@ function parseHash(): Section {
     const id = Number(h.slice(5));
     if (Number.isFinite(id)) return { name: "lead", id };
   }
-  if (h === "leads" || h === "sequences" || h === "workflows" || h === "audit" || h === "dashboard" || h === "broadcasts") {
+  if (h === "leads" || h === "sequences" || h === "workflows" || h === "audit" || h === "dashboard" || h === "broadcasts" || h === "integrations") {
     return { name: h } as Section;
   }
   return { name: "dashboard" };
@@ -216,6 +218,7 @@ function Shell({ me, section, onSignOut }: { me: AdminUser; section: Section; on
           {section.name === "sequences" ? <Sequences /> : null}
           {section.name === "workflows" ? <Workflows /> : null}
           {section.name === "broadcasts" ? <Broadcasts /> : null}
+          {section.name === "integrations" ? <Integrations /> : null}
           {section.name === "audit" ? <Audit /> : null}
         </main>
       </div>
@@ -703,6 +706,148 @@ function SequenceEditor({ sequence, onSaved }: { sequence: SequenceRow; onSaved:
         {status === "ok" ? <span className="adm__status-ok">{t(language, "adminStepSaved")}</span> : null}
         {status === "err" ? <span className="adm__status-err">{t(language, "adminStepSaveError")}</span> : null}
       </div>
+    </div>
+  );
+}
+
+// ---------- Integrations ----------
+
+interface IntegrationsData {
+  amocrm: { configured: boolean; baseUrl: string | null; pipelineId: string | null; syncedCount: number; failedSyncs: number };
+  metaPixel: { configured: boolean; pixelId: string | null };
+  googleAnalytics: { configured: boolean; measurementId: string | null };
+  leadsGroup: { configured: boolean; chatId: string | null };
+}
+
+function Integrations() {
+  const language: Language = "uz";
+  const [data, setData] = useState<IntegrationsData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const d = await adminCall<IntegrationsData>("/integrations");
+        if (!cancelled) setData(d);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  if (error) return <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div>;
+  if (!data) return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
+
+  return (
+    <div>
+      <h1 className="adm__page-title">{t(language, "adminIntegrationsTitle")}</h1>
+      <p style={{ color: "var(--ink-muted)", marginBottom: 24, maxWidth: 720 }}>
+        {t(language, "adminIntegrationsSubtitle")}
+      </p>
+
+      <div className="adm__grid">
+        <IntegrationCard
+          title="amoCRM"
+          icon="🔗"
+          configured={data.amocrm.configured}
+          details={[
+            { label: t(language, "adminIntegrationUrl"), value: data.amocrm.baseUrl ?? "—" },
+            { label: t(language, "adminIntegrationPipeline"), value: data.amocrm.pipelineId ?? "—" },
+            { label: t(language, "adminIntegrationSynced"), value: String(data.amocrm.syncedCount) },
+            { label: t(language, "adminIntegrationFailed"), value: String(data.amocrm.failedSyncs) },
+          ]}
+          docsUrl="/docs/INTEGRATIONS.md#1-amocrm-ulash"
+        />
+
+        <IntegrationCard
+          title="Meta Pixel"
+          icon="📘"
+          configured={data.metaPixel.configured}
+          details={[
+            { label: "Pixel ID", value: data.metaPixel.pixelId ?? "—" },
+            { label: t(language, "adminIntegrationEvents"), value: "PageView, Lead, ViewContent" },
+          ]}
+          docsUrl="/docs/INTEGRATIONS.md#2-meta-pixel-facebookinstagram-reklama"
+        />
+
+        <IntegrationCard
+          title="Google Analytics 4"
+          icon="📊"
+          configured={data.googleAnalytics.configured}
+          details={[
+            { label: "Measurement ID", value: data.googleAnalytics.measurementId ?? "—" },
+            { label: t(language, "adminIntegrationEvents"), value: "page_view, generate_lead" },
+          ]}
+          docsUrl="/docs/INTEGRATIONS.md#3-google-analytics-4"
+        />
+
+        <IntegrationCard
+          title={t(language, "adminIntegrationLeadsGroup")}
+          icon="💬"
+          configured={data.leadsGroup.configured}
+          details={[
+            { label: "Chat ID", value: data.leadsGroup.chatId ?? "—" },
+          ]}
+          docsUrl="/docs/INTEGRATIONS.md"
+        />
+      </div>
+    </div>
+  );
+}
+
+function IntegrationCard({
+  title,
+  icon,
+  configured,
+  details,
+  docsUrl,
+}: {
+  title: string;
+  icon: string;
+  configured: boolean;
+  details: Array<{ label: string; value: string }>;
+  docsUrl?: string;
+}) {
+  return (
+    <div className="adm__panel">
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+        <span style={{ fontSize: 28 }}>{icon}</span>
+        <div>
+          <h3 className="adm__panel-title" style={{ margin: 0 }}>{title}</h3>
+          <span className={configured ? "adm__tier adm__tier--cold" : "adm__tier adm__tier--null"}>
+            {configured ? "✓ Faollashtirilgan" : "✗ Sozlanmagan"}
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {details.map((d) => (
+          <div key={d.label} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+            <span style={{ color: "var(--ink-muted)", fontSize: 13 }}>{d.label}</span>
+            <span style={{ fontWeight: 600, fontSize: 13, textAlign: "right" }}>{d.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {docsUrl ? (
+        <a
+          href={docsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "inline-block",
+            marginTop: 12,
+            fontSize: 13,
+            color: "var(--gold-deep)",
+            textDecoration: "none",
+            fontWeight: 600,
+          }}
+        >
+          {configured ? "Qo'llanma →" : "O'rnatish bo'yicha qo'llanma →"}
+        </a>
+      ) : null}
     </div>
   );
 }

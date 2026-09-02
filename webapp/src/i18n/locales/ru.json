@@ -359,5 +359,14 @@
   "adminWorkflowConfirmDelete": "Точно удалить?",
   "adminWorkflowEmpty": "Пока нет workflow",
   "adminWorkflowAny": "— любой —",
-  "adminWorkflowAdd": "+ Добавить новый workflow"
+  "adminWorkflowAdd": "+ Добавить новый workflow",
+  "adminNavIntegrations": "Интеграции",
+  "adminIntegrationsTitle": "Состояние интеграций",
+  "adminIntegrationsSubtitle": "AmoCRM, Meta Pixel, Google Analytics и другие сервисы. Каждая интеграция настраивается отдельно.",
+  "adminIntegrationUrl": "URL",
+  "adminIntegrationPipeline": "Pipeline ID",
+  "adminIntegrationSynced": "Синхронизировано",
+  "adminIntegrationFailed": "Ошибок",
+  "adminIntegrationEvents": "События",
+  "adminIntegrationLeadsGroup": "Группа лидов"
 }

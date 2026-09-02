@@ -15,6 +15,7 @@ import { haptics } from "./lib/haptics";
 import type { RegistrationDetails } from "./lib/registrationSummary";
 import { play } from "./lib/sound";
 import { initTelegramWebApp, tg } from "./lib/telegram";
+import { initThirdPartyAnalytics, trackPageView, trackLead, trackViewContent } from "./lib/thirdPartyAnalytics";
 
 interface PendingSubmit {
   role: RegistrationType;
@@ -100,6 +101,7 @@ export default function App() {
 
   useEffect(() => {
     initTelegramWebApp();
+    initThirdPartyAnalytics();
     void boot();
     track("app_open", { lang: languageFromUrl() ?? undefined });
   }, [boot]);
@@ -111,6 +113,8 @@ export default function App() {
     const role = "role" in step ? step.role : undefined;
     const lang = "language" in step ? step.language : undefined;
     track("screen_view", { step: step.name, role, lang });
+    trackPageView(`/${step.name}`, step.name);
+    if (step.name === "landing") trackViewContent("landing");
   }, [step]);
 
   async function handleSubmit(
@@ -153,6 +157,7 @@ export default function App() {
       haptics.success();
       play("success");
       track("submit_success", { role, lang: language });
+      trackLead(role, language);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       const friendly =

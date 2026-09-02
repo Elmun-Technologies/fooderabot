@@ -359,5 +359,14 @@
   "adminWorkflowConfirmDelete": "Rostdan ham o'chirilsinmi?",
   "adminWorkflowEmpty": "Hozircha workflow yo'q",
   "adminWorkflowAny": "— istalgan —",
-  "adminWorkflowAdd": "+ Yangi workflow qo'shish"
+  "adminWorkflowAdd": "+ Yangi workflow qo'shish",
+  "adminNavIntegrations": "Integratsiyalar",
+  "adminIntegrationsTitle": "Integratsiyalar holati",
+  "adminIntegrationsSubtitle": "AmoCRM, Meta Pixel, Google Analytics va boshqa xizmatlarning ulanish holati. Har bir integratsiya alohida sozlanadi.",
+  "adminIntegrationUrl": "URL",
+  "adminIntegrationPipeline": "Pipeline ID",
+  "adminIntegrationSynced": "Sinxronlashtirildi",
+  "adminIntegrationFailed": "Xatolik",
+  "adminIntegrationEvents": "Eventlar",
+  "adminIntegrationLeadsGroup": "Leads guruhi"
 }

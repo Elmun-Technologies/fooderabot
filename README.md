@@ -233,6 +233,14 @@ HTTPS ortida ishga tushiring).
 Stage 5 da qo'shildi. Production: `https://<your-app>.fly.dev/admin`. Mini App
 bilan bir xil origin (cookie SameSite=Lax, single-origin deploy).
 
+**Integratsiyalar sahifasi** (`/admin#integrations`):
+- AmoCRM holati (ulanish, sinxronizatsiya statistikasi)
+- Meta Pixel holati (Facebook/Instagram reklama tracking)
+- Google Analytics 4 holati
+- Leads guruhi holati
+
+Batafsil qo'llanma: `docs/INTEGRATIONS.md`
+
 **Birinchi admin yaratish** (serverda yoki fly ssh orqali):
 ```bash
 cd backend
@@ -321,6 +329,24 @@ server tomonida 60 event/60s rate limit per IP.
 **Funnel:** Dashboard da `appOpens → landings → roleSelects → submits`
 (7 kunlik oyna) — konversiya va drop-off darhol ko'rinadi.
 
+### Third-party analytics (Meta Pixel + Google Analytics 4)
+
+Production build'da avtomatik ishlaydi. `.env` ga qo'shing:
+
+```bash
+VITE_META_PIXEL_ID=1234567890123456    # Facebook Pixel ID
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX    # Google Analytics 4
+```
+
+**Meta Pixel eventlari:** `PageView`, `Lead`, `ViewContent`
+**GA4 eventlari:** `page_view`, `generate_lead`, `select_content`
+
+Reklama kampaniyalarida konversiya tracking sozlash uchun:
+- Facebook Ads Manager → Konversiya eventlari → `Lead`
+- Google Ads → Konversiyalar → `generate_lead`
+
+Batafsil: `docs/INTEGRATIONS.md`
+
 ---
 
 ## Yangi env o'zgaruvchilar (Stage 2+)
@@ -339,11 +365,18 @@ CORS_ORIGIN=https://your-domain.com
 # Bo'sh = hammaga ruxsat. 'any' = aniq disable. Misol:
 # ADMIN_IP_ALLOWLIST="213.230.121.5, 92.38.0.0/16, 2001:db8::/32"
 ADMIN_IP_ALLOWLIST=
+
+# Meta Pixel (Facebook/Instagram reklama tracking)
+VITE_META_PIXEL_ID=1234567890123456
+
+# Google Analytics 4
+VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
 **Muhim:** `BOT_TOKEN`, `DATABASE_URL`, `WEBAPP_URL`, `LEADS_GROUP_CHAT_ID`
 Stage 0 dan beri kerak; qolgan `AMOCRM_*` ixtiyoriy (bo'lmasa leadlar
-faqat guruhga tushadi).
+faqat guruhga tushadi). `VITE_META_PIXEL_ID` va `VITE_GA_MEASUREMENT_ID`
+faqat production build'da ishlaydi.
 
 ---
 

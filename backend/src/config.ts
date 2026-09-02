@@ -31,6 +31,7 @@ export const config = {
     statusIdGuest: process.env.AMOCRM_STATUS_ID_GUEST ? Number(process.env.AMOCRM_STATUS_ID_GUEST) : undefined,
     fields: {
       position: process.env.AMOCRM_FIELD_POSITION,
+      phone: process.env.AMOCRM_FIELD_PHONE,
       companyName: process.env.AMOCRM_FIELD_COMPANY_NAME,
       companyYears: process.env.AMOCRM_FIELD_COMPANY_YEARS,
       companyActivity: process.env.AMOCRM_FIELD_COMPANY_ACTIVITY,

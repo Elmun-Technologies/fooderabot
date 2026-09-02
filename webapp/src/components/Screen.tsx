@@ -45,10 +45,7 @@ export function Screen({
 
       {showBrand ? (
         <div className="brand">
-          <img className="brand__logo" src="/logo.png" alt="Foodera Expo" />
-          <span>
-            <strong>FOODERA</strong> EXPO 2026
-          </span>
+          <img className="brand__logo" src="/logo.png" alt="FOODERA EXPO 2026" width={30} height={30} />
         </div>
       ) : null}
 

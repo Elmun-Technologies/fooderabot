@@ -6,6 +6,8 @@ export function ResultScreen({
   title,
   text,
   details,
+  nextSteps,
+  footer,
   action,
 }: {
   icon: ReactNode;
@@ -13,6 +15,8 @@ export function ResultScreen({
   title: ReactNode;
   text: ReactNode;
   details?: { label: string; value: ReactNode }[];
+  nextSteps?: string[];
+  footer?: ReactNode;
   action?: ReactNode;
 }) {
   return (
@@ -31,6 +35,17 @@ export function ResultScreen({
             ))}
           </div>
         ) : null}
+        {nextSteps?.length ? (
+          <ol className="next-steps">
+            {nextSteps.map((s, i) => (
+              <li className="next-steps__item" key={i}>
+                <span className="next-steps__num">{i + 1}</span>
+                <span>{s}</span>
+              </li>
+            ))}
+          </ol>
+        ) : null}
+        {footer}
       </div>
       {action ? <div className="actions">{action}</div> : null}
     </div>

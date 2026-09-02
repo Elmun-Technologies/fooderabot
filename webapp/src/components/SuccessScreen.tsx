@@ -1,5 +1,8 @@
 import { t, type Language } from "../i18n";
+import { SHARE_URL } from "../lib/event";
 import { buildSummaryRows, type RegistrationDetails } from "../lib/registrationSummary";
+import { tg } from "../lib/telegram";
+import { ContactCard } from "./ContactCard";
 import { ResultScreen } from "./ResultScreen";
 
 export function SuccessScreen({
@@ -9,6 +12,12 @@ export function SuccessScreen({
   language: Language;
   details: RegistrationDetails;
 }) {
+  function share() {
+    const text = encodeURIComponent(t(language, "shareText"));
+    const url = encodeURIComponent(SHARE_URL);
+    tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${text}`);
+  }
+
   if (details.type === "STAND") {
     return (
       <ResultScreen
@@ -16,6 +25,22 @@ export function SuccessScreen({
         title={t(language, "successStandTitle")}
         text={t(language, "successStandText")}
         details={buildSummaryRows(language, details)}
+        nextSteps={[
+          t(language, "whatNextStand1"),
+          t(language, "whatNextStand2"),
+          t(language, "whatNextStand3"),
+        ]}
+        footer={<ContactCard language={language} />}
+        action={
+          <>
+            <button type="button" className="button" onClick={share}>
+              {t(language, "shareButton")}
+            </button>
+            <button type="button" className="button button--secondary" onClick={() => tg.close()}>
+              {t(language, "closeApp")}
+            </button>
+          </>
+        }
       />
     );
   }
@@ -28,6 +53,22 @@ export function SuccessScreen({
       title={t(language, "successGuestTitle")}
       text={t(language, willAttend ? "successGuestTextAttend" : "successGuestTextNotSure")}
       details={buildSummaryRows(language, details)}
+      nextSteps={
+        willAttend
+          ? [t(language, "whatNextGuest1"), t(language, "whatNextGuest2"), t(language, "whatNextGuest3")]
+          : undefined
+      }
+      footer={<ContactCard language={language} />}
+      action={
+        <>
+          <button type="button" className="button" onClick={share}>
+            {t(language, "shareButton")}
+          </button>
+          <button type="button" className="button button--secondary" onClick={() => tg.close()}>
+            {t(language, "closeApp")}
+          </button>
+        </>
+      }
     />
   );
 }

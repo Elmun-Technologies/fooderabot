@@ -6,13 +6,6 @@ export const EVENT = {
   name: "FOODERA EXPO 2026",
   /** Local time, Samarkand */
   startDate: new Date("2026-10-20T00:00:00+05:00"),
-  heroImage: "assets/gallery/gallery-2.jpg",
-  gallery: [
-    "assets/gallery/gallery-1.jpg",
-    "assets/gallery/gallery-2.jpg",
-    "assets/gallery/gallery-3.jpg",
-    "assets/gallery/gallery-4.jpg",
-  ],
   countries: [
     { code: "UZ", flag: "assets/flags/uz.png", market: "$15–18B" },
     { code: "KZ", flag: "assets/flags/kz.png", market: "$22–28B" },

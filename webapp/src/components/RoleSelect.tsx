@@ -14,7 +14,7 @@ const BENEFITS = [
 
 /**
  * The "landing page" of the mini app, mirroring sofexpo.uz/foodera-expo:
- * hero → CTA → trust → market stats → benefits → countries → gallery.
+ * hero → CTA → trust → market stats → benefits → countries.
  */
 export function RoleSelect({
   language,
@@ -99,15 +99,6 @@ export function RoleSelect({
               <span className="countries__code">{c.code}</span>
               <span className="countries__market">{c.market}</span>
             </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="gallery">
-        <p className="section-title">{t(language, "galleryTitle")}</p>
-        <div className="gallery__strip">
-          {EVENT.gallery.map((src) => (
-            <img src={src} alt="" key={src} loading="lazy" />
           ))}
         </div>
       </div>

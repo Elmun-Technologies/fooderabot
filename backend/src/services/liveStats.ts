@@ -62,22 +62,16 @@ async function compute(): Promise<LiveSnapshot> {
       by: ["city"],
       where: { city: { not: null } },
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: 8,
     }),
     prisma.registration.groupBy({
       by: ["companyActivity"],
       where: { companyActivity: { not: null } },
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: 8,
     }),
     prisma.registration.groupBy({
       by: ["spaceNeeded"],
       where: { type: "STAND", spaceNeeded: { not: null } },
       _count: { _all: true },
-      orderBy: { _count: { _all: "desc" } },
-      take: 6,
     }),
     prisma.registration.findMany({
       where: { createdAt: { gte: recentStart } },

@@ -21,7 +21,7 @@ interface AudienceProps {
  * cities, and how stand-owners and visitors are balanced.
  */
 export function Audience({ language, stats, onPrimary }: AudienceProps) {
-  const cities = (stats?.cities ?? []).slice(0, 6);
+  const cities = [...(stats?.cities ?? [])].sort(function (a, b) { return b.count - a.count; }).slice(0, 6);
   const maxCity = cities.reduce((m, c) => Math.max(m, c.count), 0);
   const stand = stats?.stand ?? 0;
   const guest = stats?.guest ?? 0;

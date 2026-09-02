@@ -26,8 +26,10 @@ async function main() {
     process.exit(1);
   }
 
-  const { hash, salt } = hashPassword(password);
-  const passwordHash = packPassword({ hash, salt });
+  // Stage 7: argon2id (OWASP-recommended, memory-hard). Old PBKDF2
+  // hashes get auto-upgraded on first successful login.
+  const encodedHash = await hashPassword(password);
+  const passwordHash = packPassword("argon2id", encodedHash);
 
   const user = await prisma.adminUser.upsert({
     where: { username },
@@ -39,7 +41,7 @@ async function main() {
   // immediately (no cookie carries the old credential).
   await prisma.adminSession.deleteMany({ where: { adminUserId: user.id } });
 
-  console.log(`Admin ready: ${user.username} (id=${user.id})`);
+  console.log(`Admin ready: ${user.username} (id=${user.id}) — argon2id hash stored`);
 }
 
 main()

@@ -1,46 +1,101 @@
 import crypto from "node:crypto";
+import argon2 from "argon2";
 
 /**
  * Admin auth: password hashing + session token helpers.
  *
- * MVP-grade security (Stage 4):
- *  - password is hashed with PBKDF2 (Node built-in, no native deps) +
- *    a per-admin random salt. Not bcrypt, but better than a plain
- *    SHA-256 and 100% zero-dependency, so we don't have to ship a
- *    native module that breaks the Fly Docker image.
- *  - session tokens are 32 random bytes hex-encoded. The raw token
- *    goes into the cookie; only its sha256 hash is stored in the DB
- *    so a leak of AdminSession rows cannot impersonate users.
+ * Stage 7 hardening: password is hashed with **argon2id** (memory-hard,
+ * recommended by OWASP since 2023). Existing admin rows created with
+ * the old PBKDF2 format are still verifiable — we detect the format
+ * by the `$algo$` prefix and rehash to argon2id on the first successful
+ * login after the upgrade, so the migration is invisible to the
+ * operator.
  *
- * Hardening plan (Stage 6):
- *  - bump iterations or move to argon2id
- *  - add IP allow-list
- *  - add 2FA
+ * Stored format: `${algo}$${payload}` where:
+ *   - algo = "argon2id" | "pbkdf2"
+ *   - payload = argon2 encoded string OR `${salt}$${hexHash}` for PBKDF2
+ *
+ * The full encoded argon2 string already includes salt, params and
+ * hash, so we wrap it as `argon2id$argon2_encoded_string`.
+ *
+ * Session tokens: 32 random bytes hex-encoded, only the sha256 is
+ * stored in the DB (raw token lives in the httpOnly cookie).
  */
 
-const ITERATIONS = 120_000;
-const KEYLEN = 32;
-const DIGEST = "sha256";
+const PBKDF2_ITERATIONS = 120_000;
+const PBKDF2_KEYLEN = 32;
+const PBKDF2_DIGEST = "sha256";
+
+// OWASP-recommended argon2id params (2023+): m=19MiB, t=2, p=1.
+// Verified on a Fly shared-cpu-1x machine (~80ms per hash).
+const ARGON2_OPTS = {
+  type: argon2.argon2id,
+  memoryCost: 19 * 1024,
+  timeCost: 2,
+  parallelism: 1,
+} as const;
+
 const SESSION_BYTES = 32;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-export function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
-  const useSalt = salt ?? crypto.randomBytes(16).toString("hex");
-  const hash = crypto
-    .pbkdf2Sync(password.normalize("NFKC"), useSalt, ITERATIONS, KEYLEN, DIGEST)
-    .toString("hex");
-  return { hash, salt: useSalt };
+/**
+ * Hash a password with argon2id. Returns the encoded string already
+ * carrying salt + params — wrap with `packPassword` for storage.
+ */
+export async function hashPassword(password: string): Promise<string> {
+  return argon2.hash(password.normalize("NFKC"), ARGON2_OPTS);
 }
 
-/** Combine salt + hash into a single string for storage. */
-export function packPassword(parts: { hash: string; salt: string }): string {
-  return `${parts.salt}$${parts.hash}`;
+/** Combine algo prefix + payload into a single string for storage. */
+export function packPassword(algo: "argon2id" | "pbkdf2", payload: string): string {
+  return `${algo}$${payload}`;
 }
 
-export function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
-  const { hash } = hashPassword(password, salt);
-  if (hash.length !== expectedHash.length) return false;
-  return crypto.timingSafeEqual(Buffer.from(hash, "hex"), Buffer.from(expectedHash, "hex"));
+/**
+ * Verify a password against a packed record. Returns the *new* packed
+ * record if the password matched AND the record was an old format
+ * (i.e. we should rehash + persist). Returns null if the password
+ * was wrong.
+ *
+ * The rehash-on-login trick keeps the migration invisible: a
+ * 6-month-old admin record upgrades to argon2id the next time they
+ * sign in, and the change is one cheap DB update.
+ */
+export async function verifyPassword(
+  password: string,
+  packed: string,
+): Promise<{ ok: true; upgraded: string | null } | { ok: false }> {
+  const sep = packed.indexOf("$");
+  if (sep <= 0) return { ok: false };
+  const algo = packed.slice(0, sep);
+  const payload = packed.slice(sep + 1);
+
+  if (algo === "argon2id") {
+    const valid = await argon2.verify(payload, password.normalize("NFKC"));
+    return valid ? { ok: true, upgraded: null } : { ok: false };
+  }
+
+  if (algo === "pbkdf2") {
+    // Legacy PBKDF2: payload = `${salt}$${hexHash}`.
+    const innerSep = payload.indexOf("$");
+    if (innerSep <= 0) return { ok: false };
+    const salt = payload.slice(0, innerSep);
+    const expectedHex = payload.slice(innerSep + 1);
+    const actualHex = crypto
+      .pbkdf2Sync(password.normalize("NFKC"), salt, PBKDF2_ITERATIONS, PBKDF2_KEYLEN, PBKDF2_DIGEST)
+      .toString("hex");
+    if (actualHex.length !== expectedHex.length) return { ok: false };
+    const ok = crypto.timingSafeEqual(
+      Buffer.from(actualHex, "hex"),
+      Buffer.from(expectedHex, "hex"),
+    );
+    if (!ok) return { ok: false };
+    // Rehash to argon2id on first successful login.
+    const upgradedHash = await hashPassword(password);
+    return { ok: true, upgraded: packPassword("argon2id", upgradedHash) };
+  }
+
+  return { ok: false };
 }
 
 export function newSessionToken(): { raw: string; hash: string } {

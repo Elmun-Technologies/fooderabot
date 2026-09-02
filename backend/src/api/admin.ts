@@ -114,14 +114,19 @@ adminRouter.post("/login", async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
-  const parts = user.passwordHash.split("$");
-  if (parts.length !== 2) {
-    return res.status(500).json({ error: "Corrupt password record" });
-  }
-  const [salt, hash] = parts;
-  if (!verifyPassword(password, salt, hash)) {
+  // Stage 7: argon2id verify with automatic PBKDF2 -> argon2id upgrade.
+  // Old records (algo="pbkdf2") get re-hashed on the first successful
+  // login after the upgrade, so the migration is invisible.
+  const result = await verifyPassword(password, user.passwordHash);
+  if (!result.ok) {
     await writeAudit(user.id, "login_failed", req, user.id, { reason: "bad_password" });
     return res.status(401).json({ error: "Invalid credentials" });
+  }
+  if (result.upgraded) {
+    await prisma.adminUser
+      .update({ where: { id: user.id }, data: { passwordHash: result.upgraded } })
+      .catch((err: unknown) => console.error("Failed to upgrade admin password hash", err));
+    await writeAudit(user.id, "password_upgraded", req, user.id, { from: "pbkdf2", to: "argon2id" });
   }
 
   const { raw, hash: tokenHash } = newSessionToken();

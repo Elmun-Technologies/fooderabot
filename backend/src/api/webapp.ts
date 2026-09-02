@@ -2,11 +2,21 @@ import { Router } from "express";
 import { config } from "../config";
 import { prisma } from "../db";
 import { recordEvent, isValidEventName } from "../services/analytics";
+import { clientIp, makeRateLimiter } from "../lib/rateLimit";
 import { validateInitData } from "../lib/validateInitData";
 import { AlreadyRegisteredError, checkRegistration, submitRegistration } from "../services/registration";
 import { toSubmitBody, validateSubmitBody } from "./validate";
 
 export const webappRouter = Router();
+
+/**
+ * Per-IP rate limit for the analytics track endpoint.
+ * 60 events / 60s = ~1 event/second, comfortable for the batched
+ * analytics client which flushes at 10 events or every 5s.
+ */
+const trackLimiter = makeRateLimiter({ key: "track", windowMs: 60_000, max: 60 });
+/** Anti-spam: a single IP can submit at most 10 registrations / minute. */
+const submitLimiter = makeRateLimiter({ key: "submit", windowMs: 60_000, max: 10 });
 
 /** Resolve the Telegram user (if any) from the initData header, then look
  *  up the matching User row so we can attach UTM context to the event. */
@@ -50,6 +60,13 @@ webappRouter.post("/submit", async (req, res) => {
   const validated = getValidatedUser(req);
   if (!validated) return res.status(401).json({ error: "Invalid Telegram init data" });
 
+  const ip = clientIp(req);
+  const limit = submitLimiter(ip);
+  if (limit.limited) {
+    res.setHeader("Retry-After", String(Math.ceil(limit.resetMs / 1000)));
+    return res.status(429).json({ error: "Too many submissions, slow down" });
+  }
+
   const validationError = validateSubmitBody(req.body);
   if (validationError) return res.status(400).json({ error: validationError });
 
@@ -76,6 +93,15 @@ webappRouter.post("/submit", async (req, res) => {
  * provided — see isValidEventName + the missing_id check.
  */
 webappRouter.post("/track", async (req, res) => {
+  // Stage 6: per-IP rate limit. The client already batches so 60/min
+  // is plenty; without this a runaway client could fill the Event table.
+  const ip = clientIp(req);
+  const limit = trackLimiter(ip);
+  if (limit.limited) {
+    res.setHeader("Retry-After", String(Math.ceil(limit.resetMs / 1000)));
+    return res.status(429).json({ ok: false, reason: "rate_limited" });
+  }
+
   const body = (req.body ?? {}) as Record<string, unknown>;
   const { userId, utm } = await getTrackedUser(req);
 
@@ -87,13 +113,10 @@ webappRouter.post("/track", async (req, res) => {
   try {
     const result = await recordEvent({ name, screen, props, anonymousId, userId, utm });
     if (!result.recorded) {
-      // Validation problems are client bugs — answer 400 so the client
-      // can decide to drop or log. We never crash on bad input.
       return res.status(400).json({ ok: false, reason: result.reason });
     }
     res.json({ ok: true });
   } catch (err) {
-    // Server-side DB error: 202 so the client doesn't retry forever.
     console.error("Failed to record event", err);
     res.status(202).json({ ok: false, reason: "server_error" });
   }

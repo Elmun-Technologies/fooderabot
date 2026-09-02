@@ -48,6 +48,18 @@ export function createServer() {
   const app = express();
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
+
+  // Stage 6: basic hardening headers. Nothing exotic — we just don't
+  // want a stray response to claim a different content type or to be
+  // embedded in an iframe from a hostile origin.
+  app.use((_req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+    next();
+  });
+
   app.use(express.json({ limit: "100kb" }));
   app.use(cookieMiddleware());
   app.use(

@@ -26,6 +26,10 @@ model User {
   lastName     String?
   languageCode String?
 
+  // Language chosen explicitly in the bot (uz | ru | en) - set before the web
+  // app ever opens, so the whole flow (bot messages + web app) can adapt to it.
+  language String?
+
   // First-touch UTM attribution, captured from the /start deep-link payload.
   utmSource   String?
   utmMedium   String?
@@ -33,6 +37,11 @@ model User {
   utmContent  String?
   utmTerm     String?
   startPayload String?
+
+  // Marketing nudge sequence for users who opened the bot but never finished
+  // registering. 0 = none sent yet; bumped as each stage in the schedule fires.
+  nudgeStage  Int       @default(0)
+  nudgeSentAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -61,6 +70,10 @@ model Registration {
   amoLeadId    Int?
   amoContactId Int?
   syncError    String?
+
+  // Post-registration marketing follow-up sequence (thank-you / share nudge).
+  followUpStage  Int       @default(0)
+  followUpSentAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

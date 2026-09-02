@@ -1,4 +1,5 @@
 import { bot } from "./bot/bot";
+import { startFollowUpScheduler } from "./bot/followups";
 import { createServer } from "./api/server";
 import { config } from "./config";
 
@@ -10,6 +11,9 @@ async function main() {
 
   await bot.launch();
   console.log("Telegram bot started");
+
+  startFollowUpScheduler();
+  console.log("Follow-up scheduler started");
 
   process.once("SIGINT", () => bot.stop("SIGINT"));
   process.once("SIGTERM", () => bot.stop("SIGTERM"));

@@ -156,7 +156,12 @@ export default function App() {
     }
   }
 
-  switch (step.name) {
+  const screenKey = step.name + ":" + ("language" in step ? step.language : "");
+
+  return (
+    <div key={screenKey} className="screen-transition">
+      {(() => {
+        switch (step.name) {
     case "loading":
       return (
         <div className="splash">
@@ -268,5 +273,8 @@ export default function App() {
           }
         />
       );
-  }
+        }
+      })()}
+    </div>
+  );
 }

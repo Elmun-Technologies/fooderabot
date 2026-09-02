@@ -1103,6 +1103,26 @@ img {
    and friends above stay intact for the form/result flows.
    ========================================================================= */
 
+/* Stage 3: page-transition wrapper. The inner contents are fully replaced
+   on every state change, so this single animation runs whenever the user
+   moves between screens. Reduced-motion is honored via the global guard. */
+.screen-transition {
+  animation: screenIn var(--dur-base) var(--ease-out);
+  will-change: opacity, transform;
+}
+
+@keyframes screenIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
 /* ---------- Layout helpers ---------- */
 .edl {
   /* editorial landing wrapper */

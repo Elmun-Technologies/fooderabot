@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { t, type Language } from "../../i18n";
 import { haptics } from "../../lib/haptics";
+import { useCountUp } from "../../lib/useCountUp";
 import { play, unlockAudio } from "../../lib/sound";
 import { Reveal } from "./Reveal";
 
@@ -34,6 +35,10 @@ interface HeroEditorialProps {
  */
 export function HeroEditorial({ language, onPrimary, onSecondary }: HeroEditorialProps) {
   const { d, h, m } = useCountdown();
+  // Count-up: 0 -> real value, once on mount, with a soft ease-out.
+  const dAnim = useCountUp(d, 1100);
+  const hAnim = useCountUp(h, 1100);
+  const mAnim = useCountUp(m, 1100);
   return (
     <section className="edl-hero">
       <img className="edl-hero__art" src="/assets/hero-illustration.jpg" alt="" draggable={false} />
@@ -65,17 +70,17 @@ export function HeroEditorial({ language, onPrimary, onSecondary }: HeroEditoria
           <div className="edl-countdown" role="timer" aria-label={t(language, "cdLabel")}>
             <span className="edl-countdown__label">{t(language, "cdLabel")}</span>
             <div className="edl-countdown__cell">
-              <span className="edl-countdown__num">{d}</span>
+              <span className="edl-countdown__num">{dAnim}</span>
               <span className="edl-countdown__lbl">{t(language, "cdDays")}</span>
             </div>
             <div className="edl-countdown__sep" aria-hidden="true" />
             <div className="edl-countdown__cell">
-              <span className="edl-countdown__num">{String(h).padStart(2, "0")}</span>
+              <span className="edl-countdown__num">{String(hAnim).padStart(2, "0")}</span>
               <span className="edl-countdown__lbl">{t(language, "cdHours")}</span>
             </div>
             <div className="edl-countdown__sep" aria-hidden="true" />
             <div className="edl-countdown__cell">
-              <span className="edl-countdown__num">{String(m).padStart(2, "0")}</span>
+              <span className="edl-countdown__num">{String(mAnim).padStart(2, "0")}</span>
               <span className="edl-countdown__lbl">{t(language, "cdMins")}</span>
             </div>
           </div>

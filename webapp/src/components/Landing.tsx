@@ -95,22 +95,28 @@ export function Landing({ language, onContinue }: { language: Language; onContin
             <span className="why__icon why__icon--blue">
               <IconBuyers />
             </span>
-            <b>{t(language, "why1Title")}</b>
-            <i>{t(language, "why1Text")}</i>
+            <span className="why__body">
+              <b>{t(language, "why1Title")}</b>
+              <i>{t(language, "why1Text")}</i>
+            </span>
           </div>
           <div className="why__card">
             <span className="why__icon why__icon--gold">
               <IconHandshake />
             </span>
-            <b>{t(language, "why2Title")}</b>
-            <i>{t(language, "why2Text")}</i>
+            <span className="why__body">
+              <b>{t(language, "why2Title")}</b>
+              <i>{t(language, "why2Text")}</i>
+            </span>
           </div>
           <div className="why__card">
             <span className="why__icon why__icon--green">
               <IconExport />
             </span>
-            <b>{t(language, "why3Title")}</b>
-            <i>{t(language, "why3Text")}</i>
+            <span className="why__body">
+              <b>{t(language, "why3Title")}</b>
+              <i>{t(language, "why3Text")}</i>
+            </span>
           </div>
         </div>
       </div>

@@ -408,6 +408,12 @@ img {
   margin-top: 2px;
 }
 
+.why__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .why__icon {
   width: 46px;
   height: 46px;

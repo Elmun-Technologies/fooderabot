@@ -7,6 +7,9 @@ interface RevealProps {
   as?: keyof JSX.IntrinsicElements;
   className?: string;
   style?: CSSProperties;
+  /** "lift" (default) rises into place; "wipe" masks the block from the left;
+   *  "fade" is opacity only — used where a translate would fight layout. */
+  variant?: "lift" | "wipe" | "fade";
 }
 
 /**
@@ -14,16 +17,57 @@ interface RevealProps {
  * element scrolls into view. Respects prefers-reduced-motion globally
  * via the `*` transition override in styles.css.
  */
-export function Reveal({ delay = 0, as = "div", className = "", style, children }: PropsWithChildren<RevealProps>) {
+export function Reveal({
+  delay = 0,
+  as = "div",
+  className = "",
+  style,
+  variant = "lift",
+  children,
+}: PropsWithChildren<RevealProps>) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const delayClass = delay > 0 ? ` edl__reveal--delay-${Math.min(delay, 4)}` : "";
-  const classes = `edl__reveal${inView ? " edl__reveal--in" : ""}${delayClass} ${className}`.trim();
+  const variantClass = variant === "lift" ? "" : ` edl__reveal--${variant}`;
+  const classes = `edl__reveal${variantClass}${inView ? " edl__reveal--in" : ""}${delayClass} ${className}`.trim();
 
   // Render any tag name; the observer is attached to the same node.
   const Tag = as as "div";
   return (
     <Tag ref={ref as never} className={classes} style={style}>
       {children}
+    </Tag>
+  );
+}
+
+interface RevealWordsProps {
+  text: string;
+  className?: string;
+  /** ms added per word — 45ms reads as a line being written, not a party trick */
+  step?: number;
+  tag?: "h1" | "h2" | "h3" | "p";
+}
+
+/**
+ * Word-by-word mask reveal used for the hero headline and section titles.
+ * The whole string is exposed to assistive tech on the wrapper; the individual
+ * spans are decorative.
+ */
+export function RevealWords({ text, className = "", step = 45, tag = "h2" }: RevealWordsProps) {
+  const { ref, inView } = useInView<HTMLDivElement>({ threshold: 0.2 });
+  const words = text.split(" ");
+  const Tag = tag as "span";
+  return (
+    <Tag
+      ref={ref as never}
+      className={`edl__words${inView ? " edl__words--in" : ""} ${className}`.trim()}
+      aria-label={text}
+    >
+      {words.map((w, i) => (
+        <span className="edl__word" key={`${w}-${i}`} style={{ animationDelay: `${i * step}ms` }}>
+          <span aria-hidden="true">{w}</span>
+          {i < words.length - 1 ? " " : ""}
+        </span>
+      ))}
     </Tag>
   );
 }

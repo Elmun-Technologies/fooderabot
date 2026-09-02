@@ -21,8 +21,8 @@ export function WhyEditorial({ language }: WhyEditorialProps) {
     <section className="edl__section edl__section--dark" id="why">
       <div className="edl__container">
         <Reveal>
-          <span className="edl__eyebrow">{t(language, "whyEditorialTitle")}</span>
-          <h2 className="edl__heading">{t(language, "whyEditorialTitle")}</h2>
+          <span className="edl__eyebrow">{t(language, "whyKicker")}</span>
+          <h2 className="edl__heading">{t(language, "whyHeading")}</h2>
           <hr className="edl__divider" />
         </Reveal>
         <div className="edl-why edl-why--on-dark">

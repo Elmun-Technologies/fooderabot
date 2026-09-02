@@ -53,4 +53,14 @@ export const config = {
   },
 
   utmMap: parseUtmMap(process.env.UTM_MAP_JSON),
+
+  // Landing-page "how many booths are left" counter. `totalStands` is the
+  // number of sellable booths in the hall; the counter subtracts the STAND
+  // rows in the database, so the page shows a measurement instead of a
+  // marketing claim. Set it to 0 to hide the block entirely.
+  liveStats: {
+    totalStands: Number(process.env.SITE_STAND_INVENTORY ?? 38),
+    standLabel: process.env.SITE_STAND_INVENTORY_LABEL ?? "Premium 18 m²",
+    cacheMs: Math.max(10_000, Number(process.env.LIVE_STATS_CACHE_MS ?? 60_000)),
+  },
 };

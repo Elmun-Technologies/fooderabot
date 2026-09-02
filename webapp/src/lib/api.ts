@@ -8,7 +8,7 @@ import { tg } from "./telegram";
  *     web app itself, so /api/* and the app share one HTTPS origin and CORS
  *     never enters the picture).
  */
-const API_BASE =
+export const API_BASE =
   import.meta.env.VITE_API_BASE_URL ??
   (typeof window !== "undefined"
     ? (window as { __FOODERABOT_API_BASE__?: string }).__FOODERABOT_API_BASE__
@@ -34,7 +34,7 @@ export class ApiError extends Error {
  * builds replace import.meta.env.DEV with `false`, so this branch (and its
  * stub) can never run there.
  */
-const DEMO = import.meta.env.DEV && !tg.initData;
+export const DEMO = import.meta.env.DEV && !tg.initData;
 
 let demoRegistration: Record<string, unknown> | null = null;
 

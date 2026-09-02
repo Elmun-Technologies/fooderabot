@@ -5,6 +5,7 @@ import { recordEvent, isValidEventName } from "../services/analytics";
 import { clientIp, makeRateLimiter } from "../lib/rateLimit";
 import { validateInitData } from "../lib/validateInitData";
 import { AlreadyRegisteredError, checkRegistration, submitRegistration } from "../services/registration";
+import { getLiveSnapshot } from "../services/liveStats";
 import { toSubmitBody, validateSubmitBody } from "./validate";
 
 export const webappRouter = Router();
@@ -17,6 +18,12 @@ export const webappRouter = Router();
 const trackLimiter = makeRateLimiter({ key: "track", windowMs: 60_000, max: 60 });
 /** Anti-spam: a single IP can submit at most 10 registrations / minute. */
 const submitLimiter = makeRateLimiter({ key: "submit", windowMs: 60_000, max: 10 });
+/**
+ * The public live-stats feed is polled by every open landing page (one request
+ * per 45 s per visitor), so it gets its own, generous limit. The values behind
+ * it are cached in services/liveStats.ts, so a spike costs one query set.
+ */
+const liveLimiter = makeRateLimiter({ key: "live", windowMs: 60_000, max: 40 });
 
 /** Resolve the Telegram user (if any) from the initData header, then look
  *  up the matching User row so we can attach UTM context to the event. */
@@ -46,6 +53,31 @@ function getValidatedUser(req: import("express").Request) {
 /** Unauthenticated liveness probe so clients can preflight connectivity. */
 webappRouter.get("/health", (_req, res) => {
   res.json({ ok: true });
+});
+
+/**
+ * GET /api/webapp/live — public landing-page feed.
+ *
+ * No initData: the landing page runs before the user is identified (and for
+ * visitors who never open the form at all). It carries only aggregate counts
+ * plus a short "someone just registered" list of initials, and answers 503 ->
+ * null-shaped payload on failure so the page can quietly fall back to its
+ * static copy.
+ */
+webappRouter.get("/live", async (req, res) => {
+  const limit = liveLimiter(clientIp(req));
+  if (limit.limited) {
+    res.setHeader("Retry-After", String(Math.ceil(limit.resetMs / 1000)));
+    return res.status(429).json({ error: "Too many requests" });
+  }
+  try {
+    const snapshot = await getLiveSnapshot();
+    res.setHeader("cache-control", "public, max-age=45, stale-while-revalidate=60");
+    res.json({ ok: true, ...snapshot });
+  } catch (err) {
+    console.error("Failed to build live snapshot", err);
+    res.status(503).json({ error: "Live data unavailable" });
+  }
 });
 
 webappRouter.get("/check", async (req, res) => {

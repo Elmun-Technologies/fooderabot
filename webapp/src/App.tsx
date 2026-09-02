@@ -19,7 +19,10 @@ import { initTelegramWebApp, tg } from "./lib/telegram";
 interface PendingSubmit {
   role: RegistrationType;
   language: Language;
+  /** Localized payload as sent to the API. */
   values: StandFormValues | GuestFormValues;
+  /** Same answers in option-key form — what the chips need to re-select. */
+  raw?: StandFormValues | GuestFormValues;
 }
 
 type Step =
@@ -27,7 +30,7 @@ type Step =
   | { name: "offline"; language: Language }
   | { name: "alreadyRegistered"; language: Language; details: RegistrationDetails }
   | { name: "language" }
-  | { name: "landing"; language: Language }
+  | { name: "landing"; language: Language; apiDown?: boolean }
   | { name: "role"; language: Language }
   | {
       name: "form";
@@ -63,7 +66,12 @@ export default function App() {
     }
     if (seq !== bootSeq.current) return;
     if (!apiUp) {
-      setStep({ name: "offline", language: languageFromUrl() ?? "uz" });
+      // A dead API must not swallow the marketing page: the landing renders
+      // from static content + a public feed, and the user is told the desk is
+      // unreachable instead of being parked on a full-screen error. The form
+      // itself still surfaces the network error (with retry) on submit.
+      const language = languageFromUrl() ?? "uz";
+      setStep({ name: "landing", language, apiDown: true });
       return;
     }
 
@@ -117,6 +125,7 @@ export default function App() {
     role: RegistrationType,
     language: Language,
     values: StandFormValues | GuestFormValues,
+    raw?: StandFormValues | GuestFormValues,
   ) {
     setSubmitting(true);
     try {
@@ -161,7 +170,7 @@ export default function App() {
           : err instanceof ApiError && err.code === "ALREADY_REGISTERED"
             ? t(language, "errorAlreadyRegistered")
             : t(language, "errorGeneric");
-      setStep({ name: "error", message, friendly, language, pending: { role, language, values } });
+      setStep({ name: "error", message, friendly, language, pending: { role, language, values, raw } });
       haptics.error();
       track("submit_error", { role, lang: language, code: err instanceof ApiError ? err.code : "HTTP" });
     } finally {
@@ -206,7 +215,16 @@ export default function App() {
       return <LanguageSelect onSelect={(language) => setStep({ name: "landing", language })} />;
 
     case "landing":
-      return <Landing language={step.language} onContinue={() => setStep({ name: "role", language: step.language })} />;
+      return (
+        <Landing
+          language={step.language}
+          onContinue={() => setStep({ name: "role", language: step.language })}
+          apiDown={step.apiDown}
+          onStartStand={(prefill) =>
+            setStep({ name: "form", role: "STAND", language: step.language, initialStand: prefill })
+          }
+        />
+      );
 
     case "role":
       return (
@@ -225,7 +243,7 @@ export default function App() {
             submitting={submitting}
             initial={step.initialStand}
             onBack={() => setStep({ name: "role", language: step.language })}
-            onSubmit={(values) => handleSubmit("STAND", step.language, values)}
+            onSubmit={(values, raw) => handleSubmit("STAND", step.language, values, raw)}
           />
         );
       }
@@ -257,7 +275,7 @@ export default function App() {
                   type="button"
                   className="button"
                   disabled={submitting}
-                  onClick={() => void handleSubmit(step.pending!.role, step.pending!.language, step.pending!.values)}
+                  onClick={() => void handleSubmit(step.pending!.role, step.pending!.language, step.pending!.values, step.pending!.raw)}
                 >
                   {submitting ? t(step.language, "loading") : t(step.language, "retry")}
                 </button>
@@ -271,8 +289,14 @@ export default function App() {
                       name: "form",
                       role: step.pending!.role,
                       language: step.language,
-                      initialStand: step.pending!.role === "STAND" ? (step.pending!.values as StandFormValues) : undefined,
-                      initialGuest: step.pending!.role === "GUEST" ? (step.pending!.values as GuestFormValues) : undefined,
+                      initialStand:
+                        step.pending!.role === "STAND"
+                          ? ((step.pending!.raw as StandFormValues) ?? (step.pending!.values as StandFormValues))
+                          : undefined,
+                      initialGuest:
+                        step.pending!.role === "GUEST"
+                          ? ((step.pending!.raw as GuestFormValues) ?? (step.pending!.values as GuestFormValues))
+                          : undefined,
                     })
                   }
                 >

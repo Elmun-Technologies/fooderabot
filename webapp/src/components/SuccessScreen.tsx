@@ -2,6 +2,9 @@ import { t, type Language } from "../i18n";
 import { SHARE_URL } from "../lib/event";
 import { buildSummaryRows, type RegistrationDetails } from "../lib/registrationSummary";
 import { tg } from "../lib/telegram";
+import { buildIcs, downloadIcs } from "../lib/ics";
+import { haptics } from "../lib/haptics";
+import { Icon } from "./editorial/Icons";
 import { ContactCard } from "./ContactCard";
 import { ResultScreen } from "./ResultScreen";
 
@@ -18,10 +21,32 @@ export function SuccessScreen({
     tg.openTelegramLink(`https://t.me/share/url?url=${url}&text=${text}`);
   }
 
+  const calendar = (
+    <button
+      type="button"
+      className="button button--secondary"
+      onClick={() => {
+        haptics.confirm();
+        const ok = downloadIcs(
+          "foodera-expo-2026.ics",
+          buildIcs({
+            title: `FOODERA EXPO 2026 — ${t(language, "heroEventDate")}`,
+            description: t(language, "programIcsNote"),
+            location: t(language, "heroEventVenue"),
+          }),
+        );
+        if (!ok) window.alert(t(language, "programIcsFallback"));
+      }}
+    >
+      {t(language, "successAddCal")}
+    </button>
+  );
+
   if (details.type === "STAND") {
     return (
       <ResultScreen
-        icon="✓"
+        icon={<Icon name="check" size={26} />
+      }
         title={t(language, "successStandTitle")}
         text={t(language, "successStandText")}
         details={buildSummaryRows(language, details)}
@@ -36,6 +61,7 @@ export function SuccessScreen({
             <button type="button" className="button" onClick={share}>
               {t(language, "shareButton")}
             </button>
+            {calendar}
             <button type="button" className="button button--secondary" onClick={() => tg.close()}>
               {t(language, "closeApp")}
             </button>
@@ -48,7 +74,7 @@ export function SuccessScreen({
   const willAttend = details.willAttend;
   return (
     <ResultScreen
-      icon={willAttend ? "🎉" : "✓"}
+      icon={<Icon name={willAttend ? "spark" : "check"} size={26} />}
       variant={willAttend ? "gold" : "primary"}
       title={t(language, "successGuestTitle")}
       text={t(language, willAttend ? "successGuestTextAttend" : "successGuestTextNotSure")}

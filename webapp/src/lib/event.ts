@@ -9,6 +9,16 @@ export const EVENT = {
     phoneHref: "tel:+998557050705",
     telegram: "https://t.me/sofexpo",
   },
+  /**
+   * Physical booth inventory published by the organiser ("Only 38 premium
+   * stands left" on sofexpo.uz). `booked` is not stored here — it comes from
+   * the database via `lib/live.ts`, so the number on screen is a measurement,
+   * not a marketing claim.
+   */
+  inventory: {
+    totalStands: 38,
+    label: "Premium 18 m²",
+  },
 } as const;
 
 export interface OptionDef {
@@ -71,6 +81,36 @@ export const CITY_OPTIONS: OptionDef[] = [
 /** Localized label of an option (what the user saw — stored in the DB/CRM as-is). */
 export function optionLabel(language: Language, option: OptionDef): string {
   return t(language, option.labelKey);
+}
+
+const normalize = (value: string): string => value.trim().toLowerCase().replace(/\s+/g, " ");
+
+/**
+ * Map "counted by label" statistics back onto option keys.
+ *
+ * The database stores the label the user actually saw, so the same category
+ * arrives as "Ichimliklar", "Напитки" and "Drinks". Landing-page counters
+ * bucket every language variant of an option into one number instead of
+ * matching only the visitor's own language (which would silently under-count).
+ */
+export function aggregateByOption(
+  counts: { label: string; count: number }[],
+  options: OptionDef[],
+): Map<string, number> {
+  const byKey = new Map<string, number>();
+  for (const option of options) byKey.set(option.key, 0);
+  for (const row of counts) {
+    const needle = normalize(row.label);
+    for (const option of options) {
+      for (const language of ["uz", "ru", "en"] as Language[]) {
+        if (normalize(optionLabel(language, option)) === needle) {
+          byKey.set(option.key, (byKey.get(option.key) ?? 0) + row.count);
+          break;
+        }
+      }
+    }
+  }
+  return byKey;
 }
 
 /** Link used by the "share with friends" button (override with VITE_SHARE_URL). */

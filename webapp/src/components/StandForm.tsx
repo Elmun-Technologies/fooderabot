@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { t, type Language } from "../i18n";
-import { TextField } from "./TextField";
 import { Screen } from "./Screen";
+import { TextField } from "./TextField";
 
 export interface StandFormValues {
   position: string;
@@ -46,8 +46,8 @@ export function StandForm({
   const isValid = Object.values(values).every((v) => v.trim().length > 0);
 
   return (
-    <Screen title={t(language, "formTitleStand")}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <Screen step={3} totalSteps={4} onBack={onBack} heading={t(language, "formTitleStand")}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <TextField label={t(language, "position")} placeholder={t(language, "positionPlaceholder")} value={values.position} onChange={set("position")} error={errors.position} />
         <TextField label={t(language, "fullName")} placeholder={t(language, "fullNamePlaceholder")} value={values.fullName} onChange={set("fullName")} error={errors.fullName} />
         <TextField label={t(language, "companyName")} placeholder={t(language, "companyNamePlaceholder")} value={values.companyName} onChange={set("companyName")} error={errors.companyName} />
@@ -67,9 +67,6 @@ export function StandForm({
           }}
         >
           {t(language, "submit")}
-        </button>
-        <button type="button" className="button button--secondary" onClick={onBack} disabled={submitting}>
-          {t(language, "back")}
         </button>
       </div>
     </Screen>

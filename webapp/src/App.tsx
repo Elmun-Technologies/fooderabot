@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { AlreadyRegistered } from "./components/AlreadyRegistered";
 import { GuestForm, type GuestFormValues } from "./components/GuestForm";
 import { LanguageSelect } from "./components/LanguageSelect";
+import { ResultScreen } from "./components/ResultScreen";
 import { RoleSelect } from "./components/RoleSelect";
-import { Screen } from "./components/Screen";
 import { StandForm, type StandFormValues } from "./components/StandForm";
 import { SuccessScreen } from "./components/SuccessScreen";
 import { t, type Language } from "./i18n";
@@ -13,8 +13,8 @@ import { initTelegramWebApp, tg } from "./lib/telegram";
 type Step =
   | { name: "loading" }
   | { name: "alreadyRegistered"; language: Language }
-  | { name: "role" }
-  | { name: "language"; role: RegistrationType }
+  | { name: "language" }
+  | { name: "role"; language: Language }
   | { name: "form"; role: RegistrationType; language: Language }
   | { name: "success"; role: RegistrationType; language: Language; willAttend?: boolean }
   | { name: "error"; message: string; language: Language };
@@ -30,10 +30,10 @@ export default function App() {
         if (res.alreadyRegistered) {
           setStep({ name: "alreadyRegistered", language: (res.language as Language) ?? "uz" });
         } else {
-          setStep({ name: "role" });
+          setStep({ name: "language" });
         }
       })
-      .catch(() => setStep({ name: "role" }));
+      .catch(() => setStep({ name: "language" }));
   }, []);
 
   async function handleSubmit(
@@ -80,19 +80,27 @@ export default function App() {
   switch (step.name) {
     case "loading":
       return (
-        <Screen>
-          <div className="center">{t("uz", "loading")}</div>
-        </Screen>
+        <div className="screen">
+          <div className="result">
+            <p className="result__text">{t("uz", "loading")}</p>
+          </div>
+        </div>
       );
 
     case "alreadyRegistered":
       return <AlreadyRegistered language={step.language} />;
 
-    case "role":
-      return <RoleSelect onSelect={(role) => setStep({ name: "language", role })} />;
-
     case "language":
-      return <LanguageSelect onSelect={(language) => setStep({ name: "form", role: step.role, language })} />;
+      return <LanguageSelect onSelect={(language) => setStep({ name: "role", language })} />;
+
+    case "role":
+      return (
+        <RoleSelect
+          language={step.language}
+          onBack={() => setStep({ name: "language" })}
+          onSelect={(role) => setStep({ name: "form", role, language: step.language })}
+        />
+      );
 
     case "form":
       if (step.role === "STAND") {
@@ -100,7 +108,7 @@ export default function App() {
           <StandForm
             language={step.language}
             submitting={submitting}
-            onBack={() => setStep({ name: "role" })}
+            onBack={() => setStep({ name: "role", language: step.language })}
             onSubmit={(values) => handleSubmit("STAND", step.language, values)}
           />
         );
@@ -109,7 +117,7 @@ export default function App() {
         <GuestForm
           language={step.language}
           submitting={submitting}
-          onBack={() => setStep({ name: "role" })}
+          onBack={() => setStep({ name: "role", language: step.language })}
           onSubmit={(values) => handleSubmit("GUEST", step.language, values)}
         />
       );
@@ -119,19 +127,17 @@ export default function App() {
 
     case "error":
       return (
-        <Screen>
-          <div className="center">
-            <div className="badge-icon">⚠️</div>
-            <p className="screen__subtitle">
-              {step.message === "Already registered" ? t(step.language, "errorAlreadyRegistered") : t(step.language, "errorGeneric")}
-            </p>
-          </div>
-          <div className="actions">
-            <button type="button" className="button" onClick={() => setStep({ name: "role" })}>
+        <ResultScreen
+          icon="!"
+          variant="warn"
+          title={t(step.language, "errorGeneric")}
+          text={step.message === "Already registered" ? t(step.language, "errorAlreadyRegistered") : ""}
+          action={
+            <button type="button" className="button" onClick={() => setStep({ name: "role", language: step.language })}>
               {t(step.language, "back")}
             </button>
-          </div>
-        </Screen>
+          }
+        />
       );
   }
 }

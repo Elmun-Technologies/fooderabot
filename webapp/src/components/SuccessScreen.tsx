@@ -1,6 +1,6 @@
 import { t, type Language } from "../i18n";
 import type { RegistrationType } from "../lib/api";
-import { Screen } from "./Screen";
+import { ResultScreen } from "./ResultScreen";
 
 export function SuccessScreen({
   language,
@@ -12,24 +12,15 @@ export function SuccessScreen({
   willAttend?: boolean;
 }) {
   if (type === "STAND") {
-    return (
-      <Screen>
-        <div className="center">
-          <div className="badge-icon">✅</div>
-          <h1 className="screen__title">{t(language, "successStandTitle")}</h1>
-          <p className="screen__subtitle">{t(language, "successStandText")}</p>
-        </div>
-      </Screen>
-    );
+    return <ResultScreen icon="✓" title={t(language, "successStandTitle")} text={t(language, "successStandText")} />;
   }
 
   return (
-    <Screen>
-      <div className="center">
-        <div className="badge-icon">{willAttend ? "🎉" : "✅"}</div>
-        <h1 className="screen__title">{t(language, "successGuestTitle")}</h1>
-        <p className="screen__subtitle">{t(language, willAttend ? "successGuestTextAttend" : "successGuestTextNotSure")}</p>
-      </div>
-    </Screen>
+    <ResultScreen
+      icon={willAttend ? "🎉" : "✓"}
+      variant={willAttend ? "gold" : "primary"}
+      title={t(language, "successGuestTitle")}
+      text={t(language, willAttend ? "successGuestTextAttend" : "successGuestTextNotSure")}
+    />
   );
 }

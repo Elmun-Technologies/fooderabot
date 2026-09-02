@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { t, type Language } from "../i18n";
-import { TextField } from "./TextField";
 import { Screen } from "./Screen";
+import { TextField } from "./TextField";
 
 export interface GuestFormValues {
   position: string;
@@ -33,11 +33,11 @@ export function GuestForm({
 
   if (step === "confirm") {
     return (
-      <Screen>
-        <div className="center">
-          <div className="badge-icon">🎫</div>
-          <h1 className="screen__title">{t(language, "willAttendTitle")}</h1>
-          <p className="screen__subtitle">{t(language, "willAttendQuestion")}</p>
+      <Screen step={3} totalSteps={4} onBack={() => setStep("details")}>
+        <div className="result" style={{ paddingBottom: 0 }}>
+          <div className="result__icon result__icon--gold">🎫</div>
+          <h1 className="result__title">{t(language, "willAttendTitle")}</h1>
+          <p className="result__text">{t(language, "willAttendQuestion")}</p>
         </div>
         <div className="actions">
           <button
@@ -56,17 +56,14 @@ export function GuestForm({
           >
             {t(language, "willAttendNo")}
           </button>
-          <button type="button" className="button button--secondary" onClick={() => setStep("details")} disabled={submitting}>
-            {t(language, "back")}
-          </button>
         </div>
       </Screen>
     );
   }
 
   return (
-    <Screen title={t(language, "formTitleGuest")}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <Screen step={3} totalSteps={4} onBack={onBack} heading={t(language, "formTitleGuest")}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <TextField label={t(language, "position")} placeholder={t(language, "positionPlaceholder")} value={position} onChange={setPosition} error={positionError} />
         <TextField label={t(language, "fullName")} placeholder={t(language, "fullNamePlaceholder")} value={fullName} onChange={setFullName} error={fullNameError} />
         <TextField label={t(language, "companyNameOptional")} placeholder={t(language, "companyNamePlaceholder")} value={companyName} onChange={setCompanyName} />
@@ -82,9 +79,6 @@ export function GuestForm({
           }}
         >
           {t(language, "next")}
-        </button>
-        <button type="button" className="button button--secondary" onClick={onBack}>
-          {t(language, "back")}
         </button>
       </div>
     </Screen>

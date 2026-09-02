@@ -1,22 +1,22 @@
+import { t, type Language } from "../i18n";
 import type { RegistrationType } from "../lib/api";
-import { OptionCard } from "./OptionCard";
+import { Row } from "./Row";
 import { Screen } from "./Screen";
 
-// Shown before any language is picked, so every label is trilingual.
-export function RoleSelect({ onSelect }: { onSelect: (role: RegistrationType) => void }) {
+export function RoleSelect({
+  language,
+  onBack,
+  onSelect,
+}: {
+  language: Language;
+  onBack: () => void;
+  onSelect: (role: RegistrationType) => void;
+}) {
   return (
-    <Screen title="Qanday qatnashmoqchisiz? / Как хотите участвовать? / How will you join?">
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <OptionCard
-          title="🏢 Stend bilan qatnashaman / Со стендом / With a stand"
-          desc="Eksponent sifatida / Как экспонент / As an exhibitor"
-          onClick={() => onSelect("STAND")}
-        />
-        <OptionCard
-          title="🎟 Mehmon sifatida boraman / Как гость / As a guest"
-          desc="Tashrif buyuruvchi sifatida / Как посетитель / As a visitor"
-          onClick={() => onSelect("GUEST")}
-        />
+    <Screen step={2} totalSteps={4} onBack={onBack} heading={t(language, "roleTitle")}>
+      <div className="row-list">
+        <Row icon="🏢" title={t(language, "roleStand")} desc={t(language, "roleStandDesc")} onClick={() => onSelect("STAND")} />
+        <Row icon="🎟" title={t(language, "roleGuest")} desc={t(language, "roleGuestDesc")} onClick={() => onSelect("GUEST")} />
       </div>
     </Screen>
   );

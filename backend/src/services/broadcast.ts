@@ -328,11 +328,44 @@ export async function startBroadcast(
 
 const BROADCAST_TICK_MS = 30 * 1000; // 30s — same cadence as follow-up
 
+/**
+ * Pickup loop: any SCHEDULED broadcast whose scheduledAt has passed
+ * gets materialised and flipped to RUNNING, then we tick the
+ * dispatcher. Kept separate from the dispatcher tick so the latter
+ * stays a tight loop (no need to scan for SCHEDULED rows 24/7).
+ */
+export async function _runScheduledBroadcastPicker(): Promise<void> {
+  try {
+    const due = await prisma.broadcast.findMany({
+      where: { status: "SCHEDULED", scheduledAt: { lte: new Date() } },
+      select: { id: true, segment: true },
+    });
+    for (const b of due) {
+      try {
+        await startBroadcast(b.id, b.segment as BroadcastSegment);
+      } catch (err) {
+        console.error(`[broadcast] scheduled start failed for ${b.id}`, err);
+      }
+    }
+    if (due.length > 0) {
+      await runBroadcastJob();
+    }
+  } catch (err) {
+    console.error("[broadcast] scheduled-tick failed", err);
+  }
+}
+
 export function startBroadcastScheduler(): void {
   // Tick immediately so freshly-created RUNNING broadcasts don't have
   // to wait a full 30s for their first send.
   runBroadcastJob().catch((err) => console.error("[broadcast] tick failed", err));
+  // Scheduled-broadcast pickup runs less often (every minute) to keep
+  // the scan small while still picking up time-sensitive posts.
+  _runScheduledBroadcastPicker().catch((err) => console.error("[broadcast] picker failed", err));
   setInterval(() => {
     runBroadcastJob().catch((err) => console.error("[broadcast] tick failed", err));
   }, BROADCAST_TICK_MS);
+  setInterval(() => {
+    _runScheduledBroadcastPicker().catch((err) => console.error("[broadcast] picker failed", err));
+  }, 60 * 1000);
 }

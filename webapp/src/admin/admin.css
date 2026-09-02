@@ -721,3 +721,141 @@
   color: #c0392b;
   margin-left: var(--space-3);
 }
+
+/* ---------- Broadcasts (Stage 7) ---------- */
+
+.adm__composer {
+  background: var(--paper-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.adm__composer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm__composer-row--3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .adm__composer-row--3col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.adm__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adm__chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--paper-2);
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.adm__chip:hover {
+  border-color: var(--gold);
+  background: var(--paper-1);
+}
+
+.adm__chip--active {
+  background: var(--night);
+  color: var(--paper-1);
+  border-color: var(--night);
+}
+
+.adm__chip--active:hover {
+  background: var(--night);
+  color: var(--paper-1);
+}
+
+.adm__preview {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adm__preview-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-muted);
+}
+
+.adm__preview-bubble {
+  background: var(--paper-1);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 14px 2px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 540px;
+}
+
+.adm__image-uploader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adm__image-thumb {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.adm__image-placeholder {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 32px;
+  color: var(--ink-muted);
+}
+
+.adm__progress {
+  width: 100%;
+  height: 6px;
+  background: var(--paper-2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.adm__progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-deep) 100%);
+  transition: width 0.3s ease;
+}

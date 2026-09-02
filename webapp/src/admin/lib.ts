@@ -115,6 +115,39 @@ export interface AuditEntry {
   createdAt: string;
 }
 
+// =====================================================================
+// Broadcasts (Stage 7)
+// =====================================================================
+
+export type BroadcastSegment = {
+  language?: "uz" | "ru" | "en";
+  type?: "STAND" | "GUEST";
+  leadTier?: "HOT" | "WARM" | "COLD";
+  city?: string;
+  hasPhone?: boolean;
+  hasRegistration?: boolean;
+  daysSince?: number;
+};
+
+export interface BroadcastRow {
+  id: string;
+  name: string;
+  segment: BroadcastSegment;
+  textUz: string;
+  textRu: string;
+  textEn: string;
+  hasImage: boolean;
+  imageFileId: string | null;
+  status: "DRAFT" | "SCHEDULED" | "RUNNING" | "DONE" | "FAILED" | "CANCELLED";
+  scheduledAt: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  totalCount: number;
+  sentCount: number;
+  failedCount: number;
+  createdAt: string;
+}
+
 export function api(): { base: string } {
   return { base: API_BASE };
 }

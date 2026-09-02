@@ -456,3 +456,192 @@ adminRouter.post("/sequences/:id", async (req, res) => {
   await writeAudit(user.id, "sequence_update", req, id, { steps: body.steps.length, enabled: body.enabled });
   res.json({ ok: true });
 });
+
+// --------------------------------------------------------------------------
+// Broadcasts (Stage 7)
+// --------------------------------------------------------------------------
+//
+// Composer flow:
+//   1. POST /broadcasts              -> create DRAFT (or SCHEDULED if
+//                                       scheduledAt is in the future)
+//   2. POST /broadcasts/:id/upload-image
+//                                    -> multipart, body image binary,
+//                                       returns Telegram file_id
+//   3. POST /broadcasts/:id/start    -> resolve segment -> materialise
+//                                       recipients -> RUNNING
+//   4. GET  /broadcasts              -> list (status, counts, scheduledAt)
+//   5. POST /broadcasts/:id/cancel   -> RUNNING -> CANCELLED (in-flight
+//                                       recipients are best-effort)
+//
+// The scheduler (services/broadcast.ts) processes RUNNING broadcasts
+// every 30s.
+
+import { startBroadcast, uploadImageToTelegram, type BroadcastSegment } from "../services/broadcast";
+
+function mapBroadcastRow(b: any) {
+  return {
+    id: b.id,
+    name: b.name,
+    segment: b.segment,
+    textUz: b.textUz,
+    textRu: b.textRu,
+    textEn: b.textEn,
+    hasImage: Boolean(b.imageFileId),
+    imageFileId: b.imageFileId ?? null,
+    status: b.status,
+    scheduledAt: b.scheduledAt,
+    startedAt: b.startedAt,
+    finishedAt: b.finishedAt,
+    totalCount: b.totalCount,
+    sentCount: b.sentCount,
+    failedCount: b.failedCount,
+    createdAt: b.createdAt,
+  };
+}
+
+adminRouter.get("/broadcasts", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const items = await prisma.broadcast.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+  res.json({ items: items.map(mapBroadcastRow) });
+});
+
+adminRouter.post("/broadcasts", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const body = (req.body ?? {}) as {
+    name?: string;
+    segment?: BroadcastSegment;
+    textUz?: string;
+    textRu?: string;
+    textEn?: string;
+    scheduledAt?: string; // ISO timestamp
+    imageFileId?: string;
+  };
+  const name = (body.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "name is required" });
+  if (!body.segment) return res.status(400).json({ error: "segment is required" });
+  if (!body.textUz || !body.textRu || !body.textEn) {
+    return res.status(400).json({ error: "textUz, textRu, textEn are required" });
+  }
+  if (body.textUz.length > 4000 || body.textRu.length > 4000 || body.textEn.length > 4000) {
+    return res.status(400).json({ error: "text is too long (max 4000 chars per language)" });
+  }
+
+  // SCHEDULED if scheduledAt is in the future, otherwise DRAFT.
+  let status = "DRAFT";
+  let scheduledAt: Date | null = null;
+  if (body.scheduledAt) {
+    const d = new Date(body.scheduledAt);
+    if (Number.isNaN(d.getTime())) {
+      return res.status(400).json({ error: "scheduledAt is not a valid date" });
+    }
+    if (d.getTime() > Date.now() + 60_000) {
+      // Far enough in the future to be a real schedule (not a click race).
+      status = "SCHEDULED";
+      scheduledAt = d;
+    }
+  }
+
+  const created = await prisma.broadcast.create({
+    data: {
+      name,
+      segment: body.segment as any,
+      textUz: body.textUz,
+      textRu: body.textRu,
+      textEn: body.textEn,
+      imageFileId: body.imageFileId ?? null,
+      status,
+      scheduledAt,
+      createdBy: user.id,
+    },
+  });
+  await writeAudit(user.id, "broadcast_create", req, created.id, {
+    name,
+    segment: body.segment,
+    scheduled: Boolean(scheduledAt),
+  });
+  res.json(mapBroadcastRow(created));
+});
+
+adminRouter.post("/broadcasts/:id/upload-image", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const broadcast = await prisma.broadcast.findUnique({ where: { id } });
+  if (!broadcast) return res.status(404).json({ error: "Broadcast not found" });
+
+  // Express body parser doesn't handle multipart by default. We use
+  // the raw body (filled by multer or by a hand-rolled parser). The
+  // simpler approach: expect a base64 string in a JSON field. The
+  // composer already has the file in a FileReader, so we round-trip
+  // it through JSON to avoid the multipart dependency in production.
+  const body = (req.body ?? {}) as { dataUrl?: string };
+  if (!body.dataUrl || !body.dataUrl.startsWith("data:")) {
+    return res.status(400).json({ error: "dataUrl is required (e.g. 'data:image/png;base64,...')" });
+  }
+  const match = body.dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) return res.status(400).json({ error: "dataUrl must be base64-encoded" });
+  const mime = match[1]!;
+  const buf = Buffer.from(match[2]!, "base64");
+  if (buf.length > 8 * 1024 * 1024) {
+    return res.status(413).json({ error: "Image too large (max 8MB before upload)" });
+  }
+  const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : mime === "image/jpeg" ? "jpg" : "bin";
+  try {
+    const fileId = await uploadImageToTelegram(buf, `broadcast-${id}.${ext}`);
+    const updated = await prisma.broadcast.update({
+      where: { id },
+      data: { imageFileId: fileId },
+    });
+    await writeAudit(user.id, "broadcast_image_upload", req, id, { mime, size: buf.length });
+    res.json(mapBroadcastRow(updated));
+  } catch (err: any) {
+    console.error("[broadcast] Telegram upload failed", err);
+    res.status(502).json({ error: `Telegram upload failed: ${err?.message ?? "unknown"}` });
+  }
+});
+
+adminRouter.post("/broadcasts/:id/start", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const broadcast = await prisma.broadcast.findUnique({ where: { id } });
+  if (!broadcast) return res.status(404).json({ error: "Broadcast not found" });
+  if (broadcast.status === "RUNNING" || broadcast.status === "DONE") {
+    return res.status(409).json({ error: `Broadcast is ${broadcast.status.toLowerCase()}` });
+  }
+  try {
+    const result = await startBroadcast(id, broadcast.segment as BroadcastSegment);
+    await writeAudit(user.id, "broadcast_start", req, id, { audienceSize: result.audienceSize });
+    res.json({ ok: true, audienceSize: result.audienceSize });
+  } catch (err: any) {
+    console.error("[broadcast] start failed", err);
+    res.status(500).json({ error: err?.message ?? "Failed to start broadcast" });
+  }
+});
+
+adminRouter.post("/broadcasts/:id/cancel", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const broadcast = await prisma.broadcast.findUnique({ where: { id } });
+  if (!broadcast) return res.status(404).json({ error: "Broadcast not found" });
+  if (broadcast.status !== "RUNNING" && broadcast.status !== "SCHEDULED") {
+    return res.status(409).json({ error: "Broadcast is not running or scheduled" });
+  }
+  const updated = await prisma.broadcast.update({
+    where: { id },
+    data: { status: "CANCELLED", finishedAt: new Date() },
+  });
+  await writeAudit(user.id, "broadcast_cancel", req, id);
+  res.json(mapBroadcastRow(updated));
+});
+
+// Pickup of SCHEDULED broadcasts (scheduledAt <= now) happens inside
+// startBroadcastScheduler() in services/broadcast.ts — no setInterval
+// here, scheduler lifecycle is owned by index.ts.

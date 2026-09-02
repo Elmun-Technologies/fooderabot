@@ -272,6 +272,8 @@
   "adminStepSave": "Saqlash",
   "adminStepSaved": "Saqlandi ✓",
   "adminStepSaveError": "Saqlashda xato",
+  "adminStepAdd": "Qadam qo'shish",
+  "adminStepRemove": "O'chirish",
   "adminAuditTitle": "Audit log",
   "adminAuditEmpty": "Hozircha audit yozuvlari yo'q",
   "adminCommonLoading": "Yuklanmoqda...",

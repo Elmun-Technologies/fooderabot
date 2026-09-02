@@ -4,6 +4,7 @@ import { notifyLeadsGroup } from "../bot/leadsGroup";
 import { prisma } from "../db";
 import { createLeadForRegistration } from "./amocrm";
 import { computeLeadScore } from "./leadScoring";
+import { onRegistrationCreated } from "./workflow";
 import type { SubmitRegistrationBody } from "../types";
 import type { TelegramWebAppUser } from "../lib/validateInitData";
 
@@ -120,6 +121,12 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
 
   await notifyLeadsGroup(registration, user).catch((err) => {
     console.error("Failed to notify leads group", err);
+  });
+
+  // Stage 7: fire workflow engine (new_lead + lead_hot triggers).
+  // Fire-and-forget — workflow errors must never block the response.
+  void onRegistrationCreated(user.id, registration.id).catch((err) => {
+    console.error("Workflow engine failed for registration", registration.id, err);
   });
 
   return registration;

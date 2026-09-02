@@ -11,6 +11,10 @@ import {
   type BroadcastSegment,
   type DashboardData,
   type SequenceRow,
+  type WorkflowRow,
+  type WorkflowTrigger,
+  type WorkflowAction,
+  type WorkflowCondition,
 } from "./lib";
 import "./admin.css";
 
@@ -31,13 +35,15 @@ type Section =
   | { name: "leads" }
   | { name: "lead"; id: number }
   | { name: "sequences" }
-  | { name: "audit" }
-  | { name: "broadcasts" };
+  | { name: "workflows" }
+  | { name: "broadcasts" }
+  | { name: "audit" };
 
 const SECTIONS: { key: Section["name"]; labelKey: import("../i18n").TranslationKey }[] = [
   { key: "dashboard", labelKey: "adminNavDashboard" },
   { key: "leads", labelKey: "adminNavLeads" },
   { key: "sequences", labelKey: "adminNavSequences" },
+  { key: "workflows", labelKey: "adminNavWorkflows" },
   { key: "broadcasts", labelKey: "adminNavBroadcasts" },
   { key: "audit", labelKey: "adminNavAudit" },
 ];
@@ -48,7 +54,7 @@ function parseHash(): Section {
     const id = Number(h.slice(5));
     if (Number.isFinite(id)) return { name: "lead", id };
   }
-  if (h === "leads" || h === "sequences" || h === "audit" || h === "dashboard" || h === "broadcasts") {
+  if (h === "leads" || h === "sequences" || h === "workflows" || h === "audit" || h === "dashboard" || h === "broadcasts") {
     return { name: h } as Section;
   }
   return { name: "dashboard" };
@@ -208,6 +214,7 @@ function Shell({ me, section, onSignOut }: { me: AdminUser; section: Section; on
           {section.name === "leads" ? <LeadsList onOpen={(id) => navigate({ name: "lead", id })} /> : null}
           {section.name === "lead" ? <LeadDetail id={section.id} onBack={() => navigate({ name: "leads" })} /> : null}
           {section.name === "sequences" ? <Sequences /> : null}
+          {section.name === "workflows" ? <Workflows /> : null}
           {section.name === "broadcasts" ? <Broadcasts /> : null}
           {section.name === "audit" ? <Audit /> : null}
         </main>
@@ -727,6 +734,305 @@ function Audit() {
 // Avoid unused warnings for the imported `languageLabels` (kept for future
 // per-admin language switch in the panel).
 void languageLabels;
+
+// ---------- Workflows (Stage 7) ----------
+//
+// A workflow is trigger + (optional) conditions + ordered actions.
+// The UI is one big accordion-style editor: a card per workflow with
+// inline name/trigger/condition/action controls, plus a "+ New
+// workflow" button at the bottom. We keep all editing local (state)
+// and only call the API on Save, so typing is fast.
+
+const TRIGGER_LABELS: Record<WorkflowTrigger, import("../i18n").TranslationKey> = {
+  new_lead: "adminWorkflowTriggerNewLead",
+  lead_hot: "adminWorkflowTriggerLeadHot",
+  drop_off: "adminWorkflowTriggerDropOff",
+  manual: "adminWorkflowTriggerManual",
+};
+
+function Workflows() {
+  const language: Language = "uz";
+  const [items, setItems] = useState<WorkflowRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    try {
+      const d = await adminCall<{ items: WorkflowRow[] }>("/workflows");
+      setItems(d.items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+  useEffect(() => { void load(); }, []);
+
+  if (error) return <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div>;
+  if (!items) return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
+
+  async function createBlank() {
+    try {
+      const created = await adminCall<WorkflowRow>("/workflows", {
+        method: "POST",
+        body: {
+          name: "Yangi workflow",
+          trigger: "new_lead",
+          enabled: true,
+          conditions: null,
+          actions: [{ type: "send_message", textUz: "", textRu: "", textEn: "" }],
+        },
+      });
+      setItems((prev) => [created, ...(prev ?? [])]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function save(w: WorkflowRow, body: Partial<WorkflowRow>) {
+    await adminCall<WorkflowRow>(`/workflows/${w.id}`, { method: "POST", body });
+    await load();
+  }
+
+  async function remove(w: WorkflowRow) {
+    if (!confirm(t(language, "adminWorkflowConfirmDelete"))) return;
+    try {
+      await adminCall<{ ok: true }>(`/workflows/${w.id}`, { method: "DELETE" });
+      setItems((prev) => (prev ?? []).filter((x) => x.id !== w.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  return (
+    <div>
+      <h1 className="adm__page-title">{t(language, "adminWorkflowTitle")}</h1>
+      <p style={{ color: "var(--ink-muted)", marginBottom: 24, maxWidth: 720 }}>
+        {t(language, "adminWorkflowSubtitle")}
+      </p>
+      {items.length === 0 ? (
+        <div className="adm__empty">{t(language, "adminWorkflowEmpty")}</div>
+      ) : (
+        items.map((w) => <WorkflowCard key={w.id} workflow={w} onSave={save} onDelete={remove} />)
+      )}
+      <div style={{ marginTop: 24 }}>
+        <button className="adm__btn" style={{ width: "auto", padding: "10px 20px" }} onClick={createBlank}>
+          {t(language, "adminWorkflowAdd")}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WorkflowCard({
+  workflow, onSave, onDelete,
+}: {
+  workflow: WorkflowRow;
+  onSave: (w: WorkflowRow, body: Partial<WorkflowRow>) => Promise<void>;
+  onDelete: (w: WorkflowRow) => Promise<void>;
+}) {
+  const language: Language = "uz";
+  const [name, setName] = useState(workflow.name);
+  const [trigger, setTrigger] = useState<WorkflowTrigger>(workflow.trigger);
+  const [enabled, setEnabled] = useState(workflow.enabled);
+  const [conditions, setConditions] = useState<WorkflowCondition>(workflow.conditions ?? {});
+  const [actions, setActions] = useState<WorkflowAction[]>(workflow.actions);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<"ok" | "err" | null>(null);
+
+  async function save() {
+    setSaving(true);
+    setStatus(null);
+    try {
+      await onSave(workflow, { name: name.trim() || workflow.name, trigger, enabled, conditions, actions });
+      setStatus("ok");
+    } catch {
+      setStatus("err");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setStatus(null), 2400);
+    }
+  }
+
+  function updateAction(i: number, patch: Partial<WorkflowAction>) {
+    setActions((prev) => prev.map((a, j) => (j === i ? { ...a, ...patch } : a)));
+  }
+  function removeAction(i: number) {
+    setActions((prev) => prev.filter((_, j) => j !== i));
+  }
+  function addAction() {
+    setActions((prev) => [...prev, { type: "send_message", textUz: "", textRu: "", textEn: "" }]);
+  }
+
+  return (
+    <div className="adm__workflow">
+      <div className="adm__workflow-head">
+        <input
+          className="adm__input"
+          style={{ fontSize: 18, fontWeight: 700, maxWidth: 480 }}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder={t(language, "adminWorkflowNamePh")}
+        />
+        <label className="adm__toggle">
+          <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} />
+          {enabled ? t(language, "adminSequenceEnabled") : t(language, "adminSequenceDisabled")}
+        </label>
+        <button
+          type="button"
+          className="adm__btn adm__btn--secondary"
+          style={{ width: "auto", padding: "8px 16px" }}
+          onClick={() => void onDelete(workflow)}
+        >
+          {t(language, "adminWorkflowDelete")}
+        </button>
+      </div>
+
+      <div className="adm__workflow-row">
+        <span className="adm__field-label">{t(language, "adminWorkflowTrigger")}</span>
+        <div className="adm__chips">
+          {(Object.keys(TRIGGER_LABELS) as WorkflowTrigger[]).map((tr) => (
+            <button
+              key={tr}
+              type="button"
+              className={"adm__chip" + (trigger === tr ? " adm__chip--active" : "")}
+              onClick={() => setTrigger(tr)}
+            >
+              {t(language, TRIGGER_LABELS[tr])}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="adm__workflow-section">
+        <h3 className="adm__panel-title" style={{ fontSize: 14 }}>{t(language, "adminWorkflowConditions")}</h3>
+        <div className="adm__cond-grid">
+          <div>
+            <span className="adm__field-label">{t(language, "adminWorkflowConditionType")}</span>
+            <select
+              className="adm__input"
+              value={conditions.type ?? ""}
+              onChange={(e) => setConditions((c) => ({ ...c, type: (e.target.value || undefined) as any }))}
+            >
+              <option value="">{t(language, "adminWorkflowAny")}</option>
+              <option value="STAND">STAND</option>
+              <option value="GUEST">GUEST</option>
+            </select>
+          </div>
+          <div>
+            <span className="adm__field-label">{t(language, "adminWorkflowConditionTier")}</span>
+            <select
+              className="adm__input"
+              value={conditions.leadTier ?? ""}
+              onChange={(e) => setConditions((c) => ({ ...c, leadTier: (e.target.value || undefined) as any }))}
+            >
+              <option value="">{t(language, "adminWorkflowAny")}</option>
+              <option value="HOT">HOT</option>
+              <option value="WARM">WARM</option>
+              <option value="COLD">COLD</option>
+            </select>
+          </div>
+          <div>
+            <span className="adm__field-label">{t(language, "adminWorkflowConditionCity")}</span>
+            <input
+              className="adm__input"
+              value={conditions.city ?? ""}
+              onChange={(e) => setConditions((c) => ({ ...c, city: e.target.value || undefined }))}
+            />
+          </div>
+          <div>
+            <span className="adm__field-label">{t(language, "adminWorkflowConditionLang")}</span>
+            <select
+              className="adm__input"
+              value={conditions.language ?? ""}
+              onChange={(e) => setConditions((c) => ({ ...c, language: (e.target.value || undefined) as any }))}
+            >
+              <option value="">{t(language, "adminWorkflowAny")}</option>
+              <option value="uz">uz</option>
+              <option value="ru">ru</option>
+              <option value="en">en</option>
+            </select>
+          </div>
+          <div>
+            <span className="adm__field-label">{t(language, "adminWorkflowConditionMinScore")}</span>
+            <input
+              type="number"
+              className="adm__input"
+              value={conditions.minScore ?? ""}
+              onChange={(e) => setConditions((c) => ({ ...c, minScore: e.target.value ? Number(e.target.value) : undefined }))}
+            />
+          </div>
+          <div>
+            <label className="adm__toggle" style={{ marginTop: 18 }}>
+              <input
+                type="checkbox"
+                checked={Boolean(conditions.hasPhone)}
+                onChange={(e) => setConditions((c) => ({ ...c, hasPhone: e.target.checked || undefined }))}
+              />
+              {t(language, "adminWorkflowConditionHasPhone")}
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div className="adm__workflow-section">
+        <h3 className="adm__panel-title" style={{ fontSize: 14 }}>{t(language, "adminWorkflowActions")}</h3>
+        {actions.map((a, i) => (
+          <div key={i} className="adm__action">
+            <div className="adm__action-head">
+              <span className="adm__step-num">#{i + 1}</span>
+              <select
+                className="adm__input"
+                style={{ maxWidth: 320 }}
+                value={a.type}
+                onChange={(e) => updateAction(i, { type: e.target.value as any, textUz: "", textRu: "", textEn: "", key: "", value: "" })}
+              >
+                <option value="send_message">{t(language, "adminWorkflowActionSendMessage")}</option>
+                <option value="tag_user">{t(language, "adminWorkflowActionTagUser")}</option>
+                <option value="notify_admins">{t(language, "adminWorkflowActionNotifyAdmins")}</option>
+              </select>
+              <button
+                type="button"
+                className="adm__btn adm__btn--secondary"
+                style={{ width: "auto", padding: "6px 12px", marginLeft: "auto" }}
+                onClick={() => removeAction(i)}
+              >
+                ✕
+              </button>
+            </div>
+            {a.type === "send_message" || a.type === "notify_admins" ? (
+              <div className="adm__composer-row adm__composer-row--3col" style={{ marginTop: 8 }}>
+                <textarea className="adm__textarea" rows={3} value={a.textUz ?? ""} onChange={(e) => updateAction(i, { textUz: e.target.value })} placeholder={t(language, "adminWorkflowActionTextUz")} />
+                <textarea className="adm__textarea" rows={3} value={a.textRu ?? ""} onChange={(e) => updateAction(i, { textRu: e.target.value })} placeholder={t(language, "adminWorkflowActionTextRu")} />
+                <textarea className="adm__textarea" rows={3} value={a.textEn ?? ""} onChange={(e) => updateAction(i, { textEn: e.target.value })} placeholder={t(language, "adminWorkflowActionTextEn")} />
+              </div>
+            ) : null}
+            {a.type === "tag_user" ? (
+              <div className="adm__cond-grid" style={{ marginTop: 8 }}>
+                <div>
+                  <span className="adm__field-label">{t(language, "adminWorkflowActionTagKey")}</span>
+                  <input className="adm__input" value={a.key ?? ""} onChange={(e) => updateAction(i, { key: e.target.value })} />
+                </div>
+                <div>
+                  <span className="adm__field-label">{t(language, "adminWorkflowActionTagValue")}</span>
+                  <input className="adm__input" value={a.value ?? ""} onChange={(e) => updateAction(i, { value: e.target.value })} />
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ))}
+        <button className="adm__btn adm__btn--secondary" style={{ width: "auto", padding: "8px 16px", marginTop: 8 }} onClick={addAction}>
+          {t(language, "adminWorkflowAddAction")}
+        </button>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", marginTop: 16 }}>
+        <button className="adm__btn" style={{ width: "auto", padding: "10px 20px" }} disabled={saving} onClick={save}>
+          {saving ? t(language, "adminCommonLoading") : t(language, "adminWorkflowSave")}
+        </button>
+        {status === "ok" ? <span className="adm__status-ok">{t(language, "adminWorkflowSaved")}</span> : null}
+        {status === "err" ? <span className="adm__status-err">{t(language, "adminCommonError")}</span> : null}
+      </div>
+    </div>
+  );
+}
 
 // ---------- Broadcasts (Stage 7) ----------
 //

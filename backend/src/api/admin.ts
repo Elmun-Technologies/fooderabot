@@ -645,3 +645,130 @@ adminRouter.post("/broadcasts/:id/cancel", async (req, res) => {
 // Pickup of SCHEDULED broadcasts (scheduledAt <= now) happens inside
 // startBroadcastScheduler() in services/broadcast.ts — no setInterval
 // here, scheduler lifecycle is owned by index.ts.
+
+// --------------------------------------------------------------------------
+// Workflows (Stage 7)
+// --------------------------------------------------------------------------
+//
+// CRUD over the Workflow model + a manual-run endpoint. Trigger
+// evaluation (new_lead, lead_hot, drop_off) happens in
+// services/workflow.ts and is wired into registration.ts and the
+// workflow scheduler.
+
+import { runWorkflowManually } from "../services/workflow";
+
+const WORKFLOW_TRIGGERS = ["new_lead", "lead_hot", "drop_off", "manual"] as const;
+
+function mapWorkflowRow(w: any) {
+  return {
+    id: w.id,
+    name: w.name,
+    trigger: w.trigger,
+    enabled: w.enabled,
+    conditions: w.conditions,
+    actions: w.actions,
+    createdAt: w.createdAt,
+  };
+}
+
+adminRouter.get("/workflows", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const items = await prisma.workflow.findMany({ orderBy: { createdAt: "desc" } });
+  res.json({ items: items.map(mapWorkflowRow) });
+});
+
+adminRouter.post("/workflows", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const body = (req.body ?? {}) as {
+    name?: string;
+    trigger?: string;
+    enabled?: boolean;
+    conditions?: Record<string, unknown>;
+    actions?: Array<{ type: string; payload?: any }>;
+  };
+  const name = (body.name ?? "").trim();
+  if (!name) return res.status(400).json({ error: "name is required" });
+  if (!body.trigger || !WORKFLOW_TRIGGERS.includes(body.trigger as any)) {
+    return res.status(400).json({ error: `trigger must be one of: ${WORKFLOW_TRIGGERS.join(", ")}` });
+  }
+  if (!Array.isArray(body.actions) || body.actions.length === 0) {
+    return res.status(400).json({ error: "at least one action is required" });
+  }
+  const allowedActions = new Set(["send_message", "tag_user", "notify_admins"]);
+  for (const a of body.actions) {
+    if (!a?.type || !allowedActions.has(a.type)) {
+      return res.status(400).json({ error: `invalid action type: ${a?.type}` });
+    }
+  }
+  const created = await prisma.workflow.create({
+    data: {
+      name,
+      trigger: body.trigger,
+      enabled: typeof body.enabled === "boolean" ? body.enabled : true,
+      conditions: (body.conditions ?? null) as any,
+      actions: body.actions as any,
+    },
+  });
+  await writeAudit(user.id, "workflow_create", req, created.id, { trigger: body.trigger, actions: body.actions.length });
+  res.json(mapWorkflowRow(created));
+});
+
+adminRouter.post("/workflows/:id", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const body = (req.body ?? {}) as {
+    name?: string;
+    trigger?: string;
+    enabled?: boolean;
+    conditions?: Record<string, unknown> | null;
+    actions?: Array<{ type: string; payload?: any }>;
+  };
+  const wf = await prisma.workflow.findUnique({ where: { id } });
+  if (!wf) return res.status(404).json({ error: "Workflow not found" });
+  if (body.trigger && !WORKFLOW_TRIGGERS.includes(body.trigger as any)) {
+    return res.status(400).json({ error: `trigger must be one of: ${WORKFLOW_TRIGGERS.join(", ")}` });
+  }
+  const updated = await prisma.workflow.update({
+    where: { id },
+    data: {
+      name: body.name?.trim() || wf.name,
+      trigger: body.trigger ?? wf.trigger,
+      enabled: typeof body.enabled === "boolean" ? body.enabled : wf.enabled,
+      conditions: (body.conditions ?? wf.conditions) as any,
+      actions: (body.actions ?? wf.actions) as any,
+    },
+  });
+  await writeAudit(user.id, "workflow_update", req, id, {
+    enabled: updated.enabled,
+    actions: Array.isArray(updated.actions) ? updated.actions.length : 0,
+  });
+  res.json(mapWorkflowRow(updated));
+});
+
+adminRouter.post("/workflows/:id/run", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const body = (req.body ?? {}) as { userId?: number };
+  if (!Number.isFinite(body.userId)) {
+    return res.status(400).json({ error: "userId is required" });
+  }
+  const result = await runWorkflowManually(id, body.userId!);
+  await writeAudit(user.id, "workflow_run_manual", req, id, { userId: body.userId, ...result });
+  if (!result.ok) return res.status(400).json({ error: result.error });
+  res.json({ ok: true });
+});
+
+adminRouter.delete("/workflows/:id", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const wf = await prisma.workflow.findUnique({ where: { id } });
+  if (!wf) return res.status(404).json({ error: "Workflow not found" });
+  await prisma.workflow.delete({ where: { id } });
+  await writeAudit(user.id, "workflow_delete", req, id);
+  res.json({ ok: true });
+});

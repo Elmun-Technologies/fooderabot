@@ -859,3 +859,60 @@
   background: linear-gradient(90deg, var(--gold) 0%, var(--gold-deep) 100%);
   transition: width 0.3s ease;
 }
+
+/* ---------- Workflows (Stage 7) ---------- */
+
+.adm__workflow {
+  background: var(--paper-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 20px;
+}
+
+.adm__workflow-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.adm__workflow-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.adm__workflow-section {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-top: 16px;
+}
+
+.adm__cond-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 900px) {
+  .adm__cond-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.adm__action {
+  background: var(--paper-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.adm__action-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

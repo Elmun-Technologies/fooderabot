@@ -120,3 +120,68 @@ export async function seedDefaultSequences(): Promise<void> {
     }
   }
 }
+
+/**
+ * Idempotent seed for default marketing workflows. Two ready-to-use
+ * rules ship with the install so the operator has examples to clone:
+ *
+ *   1. "HOT lead → ping admins" — whenever a new registration
+ *      scores HOT, send a heads-up into the leads group.
+ *   2. "Drop-off → nudge" — when a user has been around 24h without
+ *      registering, the engine tags them so the admin can later
+ *      filter & target them with a broadcast.
+ *
+ * Like sequences, the operator can edit / disable / delete from the
+ * admin panel. Re-running this seeder won't clobber their changes —
+ * it only inserts if a workflow with the same name doesn't exist.
+ */
+export async function seedDefaultWorkflows(): Promise<void> {
+  const seeds: Array<{
+    name: string;
+    trigger: string;
+    conditions: Record<string, unknown> | null;
+    actions: Array<{ type: string; payload: any }>;
+  }> = [
+    {
+      name: "HOT lead → ping admins",
+      trigger: "lead_hot",
+      conditions: null,
+      actions: [
+        {
+          type: "notify_admins",
+          payload: {
+            textUz: "🔥🔥🔥 Yangi HOT lead! Admin panel'da darhol ko'ring.",
+            textRu: "🔥🔥🔥 Новый HOT-лид! Срочно посмотрите в админ-панели.",
+            textEn: "🔥🔥🔥 New HOT lead! Check the admin panel now.",
+          },
+        },
+      ],
+    },
+    {
+      name: "Drop-off 24h → tag for re-engagement",
+      trigger: "drop_off",
+      conditions: null,
+      actions: [
+        {
+          type: "tag_user",
+          payload: { key: "dropoff_24h", value: true },
+        },
+      ],
+    },
+  ];
+
+  for (const s of seeds) {
+    const existing = await prisma.workflow.findFirst({ where: { name: s.name } });
+    if (existing) continue;
+    await prisma.workflow.create({
+      data: {
+        name: s.name,
+        trigger: s.trigger,
+        enabled: true,
+        conditions: s.conditions as any,
+        actions: s.actions as any,
+      },
+    });
+    console.log(`Seeded workflow "${s.name}" (${s.trigger})`);
+  }
+}

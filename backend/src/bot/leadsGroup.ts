@@ -95,3 +95,12 @@ export async function notifyLeadsGroup(registration: Registration, user: User): 
   if (!config.leadsGroupChatId) return;
   await bot.telegram.sendMessage(config.leadsGroupChatId, formatLead(registration, user));
 }
+
+/**
+ * Send a raw text message to the leads group. Used by the workflow
+ * engine (`notify_admins` action) to push custom notifications.
+ */
+export async function sendLeadsGroup(text: string): Promise<void> {
+  if (!config.leadsGroupChatId) return;
+  await bot.telegram.sendMessage(config.leadsGroupChatId, text);
+}

@@ -24,7 +24,7 @@ export class AdminError extends Error {
 }
 
 interface AdminCallOptions {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   body?: unknown;
   signal?: AbortSignal;
 }
@@ -145,6 +145,44 @@ export interface BroadcastRow {
   totalCount: number;
   sentCount: number;
   failedCount: number;
+  createdAt: string;
+}
+
+// =====================================================================
+// Workflows (Stage 7)
+// =====================================================================
+
+export type WorkflowTrigger = "new_lead" | "lead_hot" | "drop_off" | "manual";
+export type WorkflowActionType = "send_message" | "tag_user" | "notify_admins";
+
+export interface WorkflowCondition {
+  type?: "STAND" | "GUEST";
+  leadTier?: "HOT" | "WARM" | "COLD";
+  city?: string;
+  language?: "uz" | "ru" | "en";
+  hasPhone?: boolean;
+  minScore?: number;
+  maxScore?: number;
+}
+
+export interface WorkflowAction {
+  type: WorkflowActionType;
+  // For send_message and notify_admins
+  textUz?: string;
+  textRu?: string;
+  textEn?: string;
+  // For tag_user
+  key?: string;
+  value?: string;
+}
+
+export interface WorkflowRow {
+  id: string;
+  name: string;
+  trigger: WorkflowTrigger;
+  enabled: boolean;
+  conditions: WorkflowCondition | null;
+  actions: WorkflowAction[];
   createdAt: string;
 }
 

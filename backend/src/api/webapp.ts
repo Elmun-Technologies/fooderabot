@@ -77,12 +77,11 @@ webappRouter.post("/submit", async (req, res) => {
  */
 webappRouter.post("/track", async (req, res) => {
   const body = (req.body ?? {}) as Record<string, unknown>;
-  const { tracked, userId, utm } = await getTrackedUser(req);
-  void tracked; // not used outside of the request-scoped lookup
+  const { userId, utm } = await getTrackedUser(req);
 
   const anonymousId = typeof body.anonymousId === "string" ? body.anonymousId.slice(0, 64) : undefined;
   const screen = typeof body.screen === "string" ? body.screen.slice(0, 64) : undefined;
-  const name = body.name;
+  const name = typeof body.name === "string" ? body.name : "";
   const props = body.props;
 
   try {

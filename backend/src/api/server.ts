@@ -3,6 +3,7 @@ import express from "express";
 import fs from "node:fs";
 import path from "node:path";
 import { config } from "../config";
+import { adminRouter } from "./admin";
 import { webappRouter } from "./webapp";
 
 function resolveStaticDir(): string | null {
@@ -19,10 +20,36 @@ function resolveStaticDir(): string | null {
   return null;
 }
 
+/**
+ * Minimal cookie parser. We don't add `cookie-parser` as a dependency
+ * because all we need is `req.cookies[name]`, no signed cookies / no
+ * options. Anything fancier can swap this out for the real middleware
+ * without touching call sites.
+ */
+function cookieMiddleware() {
+  return (req: express.Request, _res: express.Response, next: express.NextFunction) => {
+    const header = req.header("cookie");
+    const out: Record<string, string> = {};
+    if (header) {
+      for (const part of header.split(";")) {
+        const eq = part.indexOf("=");
+        if (eq < 0) continue;
+        const name = part.slice(0, eq).trim();
+        const value = part.slice(eq + 1).trim();
+        if (name) out[name] = decodeURIComponent(value);
+      }
+    }
+    (req as express.Request & { cookies: Record<string, string> }).cookies = out;
+    next();
+  };
+}
+
 export function createServer() {
   const app = express();
   app.disable("x-powered-by");
+  app.set("trust proxy", 1);
   app.use(express.json({ limit: "100kb" }));
+  app.use(cookieMiddleware());
   app.use(
     cors({
       // The API is authenticated via the Telegram initData HMAC header, not
@@ -35,6 +62,7 @@ export function createServer() {
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/webapp", webappRouter);
+  app.use("/api/admin", adminRouter);
 
   // Unknown API routes must answer JSON — an HTML SPA fallback here would be
   // read by the client as a broken response and lose the lead.

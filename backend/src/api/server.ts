@@ -5,6 +5,7 @@ import path from "node:path";
 import { config } from "../config";
 import { adminRouter } from "./admin";
 import { webappRouter } from "./webapp";
+import { ipAllowlistMiddleware } from "../lib/ipAllowlist";
 
 function resolveStaticDir(): string | null {
   const candidates = [
@@ -74,7 +75,11 @@ export function createServer() {
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/webapp", webappRouter);
-  app.use("/api/admin", adminRouter);
+  // Stage 7: optional IP allowlist for the admin router. The middleware
+  // is a no-op when ADMIN_IP_ALLOWLIST is unset, so local dev is
+  // unaffected. We mount it on the path so the public webapp API
+  // (track, submit) is never blocked.
+  app.use("/api/admin", ipAllowlistMiddleware(), adminRouter);
 
   // Unknown API routes must answer JSON — an HTML SPA fallback here would be
   // read by the client as a broken response and lose the lead.

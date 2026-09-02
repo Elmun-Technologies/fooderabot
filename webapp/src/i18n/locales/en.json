@@ -7,7 +7,6 @@
   "selectRequired": "Please choose an option",
   "languageTitle": "Choose your language",
   "languageSubtitle": "Tilni tanlang / Выберите язык",
-
   "heroTagline": "Food & Beverage Business Expo",
   "heroDatePlace": "October 20–22, 2026 · SOF EXPO, Samarkand",
   "daysLeft": "{n} days to go",
@@ -24,13 +23,11 @@
   "countriesTitle": "Central Asia & Afghanistan market — in one place",
   "galleryTitle": "Foodera Expo gallery",
   "trustLine": "⚡ 30 seconds · No charge now · Reply within 24h",
-
   "formTitleStand": "Booth application",
   "formTitleGuest": "Guest registration",
   "stepCategory": "Category",
   "stepDetails": "Details",
   "stepStand": "Booth",
-
   "categoryTitle": "What is your business category?",
   "categorySubtitle": "We'll suggest the booth package that fits you best",
   "catDrinks": "Beverages",
@@ -46,7 +43,6 @@
   "catOrganic": "Organic & healthy food",
   "catEquipment": "Packaging & equipment",
   "catOther": "Other category",
-
   "positionTitle": "Your position",
   "posDirector": "Owner / Director",
   "posMarketing": "Marketing manager",
@@ -59,32 +55,27 @@
   "companyName": "Company name",
   "companyNamePlaceholder": "Your company name",
   "companyNameOptional": "Company name (if any)",
-
   "companyYearsTitle": "How long has your company been operating?",
   "yearsUnder1": "Less than 1 year",
   "years1to3": "1–3 years",
   "years3to10": "3–10 years",
   "years10plus": "10+ years",
-
   "standTypeTitle": "What booth do you need?",
   "standTypeSubtitle": "You can change this later with our manager",
   "standPremium": "Premium booth · 18 m²",
   "standStandard": "Standard booth · 9 m²",
   "standArea": "Space only · 36 m²+",
   "standUnsure": "Not sure yet — need a consultation",
-
   "phone": "Your phone number",
   "phonePlaceholder": "+998 90 123 45 67",
   "phoneFromTelegram": "Get from Telegram",
   "phoneInvalid": "Enter the full number, e.g. +998 90 123 45 67",
   "phoneNote": "Our manager will call this number",
-
   "submitTrust": "Submit — no charge, takes 30 seconds",
   "willAttendTitle": "We'll prepare your personal badge",
   "willAttendQuestion": "Will you come on the event days (October 20–22, Samarkand)?",
   "willAttendYes": "Yes, definitely",
   "willAttendNo": "Not sure yet",
-
   "successStandTitle": "Application received!",
   "successStandText": "Our manager will contact you within 24 hours with pricing, available spots and the floor plan (PDF).",
   "successGuestTitle": "Thank you!",
@@ -100,7 +91,6 @@
   "shareButton": "Share with friends",
   "shareText": "🍽 Foodera Expo 2026 — Central Asia's major food expo. October 20–22, Samarkand. Free registration:",
   "closeApp": "Close",
-
   "alreadyRegisteredTitle": "You are already registered",
   "alreadyRegisteredText": "Your application has been received. See you at SOF EXPO, Samarkand, October 20–22!",
   "summaryType": "Type",
@@ -113,7 +103,20 @@
   "shortWillAttend": "Attendance",
   "yes": "Yes",
   "no": "No",
-
   "errorGeneric": "Something went wrong. Please try again.",
-  "errorAlreadyRegistered": "You are already registered."
+  "errorAlreadyRegistered": "You are already registered.",
+  "benefitsTitle": "Why Foodera Expo?",
+  "benefitPartners": "Partners across Central Asia",
+  "benefitProducts": "Present your new products",
+  "benefitMarkets": "Enter new markets",
+  "benefitConnections": "Business connections & contracts",
+  "benefitDirections": "New directions for growth",
+  "statRetailValue": "182T UZS",
+  "statRetailLabel": "retail in Uzbekistan (2024)",
+  "scarcityLine": "Only {n} premium stands left",
+  "packageTitle": "What you get with the application:",
+  "packagePdf": "Full price list & interactive floor plan (PDF)",
+  "packageReport": "Audience & buyer report",
+  "packagePrice": "Early price fixing",
+  "contactTitle": "Questions?"
 }

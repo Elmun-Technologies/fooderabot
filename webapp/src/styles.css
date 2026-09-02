@@ -335,11 +335,24 @@ img {
   font-weight: 500;
 }
 
-/* ---------- stats ---------- */
+/* ---------- scarcity ---------- */
+
+.scarcity {
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--gold-tint);
+  color: var(--gold-dark);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ---------- stats (2×2, mirrors the site's market block) ---------- */
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-top: 20px;
 }
@@ -347,7 +360,7 @@ img {
 .stat {
   background: var(--surface);
   border-radius: var(--radius-md);
-  padding: 14px 8px;
+  padding: 16px 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -356,7 +369,7 @@ img {
 }
 
 .stat__value {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 800;
   color: var(--primary);
   letter-spacing: -0.01em;
@@ -367,6 +380,50 @@ img {
   font-size: 11.5px;
   color: var(--text-muted);
   line-height: 1.3;
+}
+
+/* ---------- benefits (site: "Uniting the industry") ---------- */
+
+.benefits {
+  margin-top: 20px;
+}
+
+.section-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.benefits__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.benefit {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.benefit__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--primary-tint);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  flex-shrink: 0;
 }
 
 /* ---------- countries ---------- */
@@ -384,7 +441,7 @@ img {
 
 .countries__flags {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   overflow-x: auto;
   padding: 2px 0 6px;
   scrollbar-width: none;
@@ -398,8 +455,12 @@ img {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-shrink: 0;
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 10px 12px 8px;
+  min-width: 64px;
 }
 
 .countries__item img {
@@ -409,11 +470,18 @@ img {
   box-shadow: 0 0 0 1px var(--divider);
 }
 
-.countries__item span {
+.countries__code {
   font-size: 11px;
   font-weight: 700;
-  color: var(--text-muted);
+  color: var(--text);
   letter-spacing: 0.04em;
+}
+
+.countries__market {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ---------- gallery ---------- */
@@ -583,6 +651,44 @@ img {
 
 .chips__error {
   width: 100%;
+}
+
+/* ---------- package card (site: "Get your exhibitor package") ---------- */
+
+.package {
+  background: var(--surface);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+}
+
+.package__title {
+  margin: 0 0 9px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.package__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.package__list li {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.package__check {
+  color: var(--primary);
+  font-weight: 800;
+  flex-shrink: 0;
 }
 
 /* ---------- phone ---------- */
@@ -788,6 +894,31 @@ img {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* ---------- contact card ---------- */
+
+.contact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  margin-top: 12px;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed var(--divider);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.contact__label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.contact__phone {
+  font-size: 15px;
+  font-weight: 700;
 }
 
 /* ---------- splash ---------- */

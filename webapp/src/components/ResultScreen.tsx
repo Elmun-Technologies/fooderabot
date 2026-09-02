@@ -7,6 +7,7 @@ export function ResultScreen({
   text,
   details,
   nextSteps,
+  footer,
   action,
 }: {
   icon: ReactNode;
@@ -15,6 +16,7 @@ export function ResultScreen({
   text: ReactNode;
   details?: { label: string; value: ReactNode }[];
   nextSteps?: string[];
+  footer?: ReactNode;
   action?: ReactNode;
 }) {
   return (
@@ -43,6 +45,7 @@ export function ResultScreen({
             ))}
           </ol>
         ) : null}
+        {footer}
       </div>
       {action ? <div className="actions">{action}</div> : null}
     </div>

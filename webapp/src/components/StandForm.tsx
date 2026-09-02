@@ -95,6 +95,23 @@ export function StandForm({
         <div className="form-step">
           <p className="question">{t(language, "categoryTitle")}</p>
           <p className="question__sub">{t(language, "categorySubtitle")}</p>
+          <div className="package">
+            <p className="package__title">{t(language, "packageTitle")}</p>
+            <ul className="package__list">
+              <li>
+                <span className="package__check">✓</span>
+                {t(language, "packagePdf")}
+              </li>
+              <li>
+                <span className="package__check">✓</span>
+                {t(language, "packageReport")}
+              </li>
+              <li>
+                <span className="package__check">✓</span>
+                {t(language, "packagePrice")}
+              </li>
+            </ul>
+          </div>
           <Chips
             options={CATEGORY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o), icon: o.icon }))}
             value={values.companyActivity}

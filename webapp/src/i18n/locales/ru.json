@@ -7,7 +7,6 @@
   "selectRequired": "Выберите один из вариантов",
   "languageTitle": "Выберите язык",
   "languageSubtitle": "Tilni tanlang / Choose your language",
-
   "heroTagline": "Выставка пищевой индустрии и напитков",
   "heroDatePlace": "20–22 октября 2026 · SOF EXPO, Самарканд",
   "daysLeft": "до начала {n} дн.",
@@ -24,13 +23,11 @@
   "countriesTitle": "Рынок Центральной Азии и Афганистана — в одном месте",
   "galleryTitle": "Галерея Foodera Expo",
   "trustLine": "⚡ 30 секунд · Без оплаты сейчас · Ответ за 24 часа",
-
   "formTitleStand": "Заявка на стенд",
   "formTitleGuest": "Регистрация гостя",
   "stepCategory": "Направление",
   "stepDetails": "Данные",
   "stepStand": "Стенд",
-
   "categoryTitle": "Какое у вас направление деятельности?",
   "categorySubtitle": "Подберём стенд-пакет, который подойдёт именно вам",
   "catDrinks": "Напитки",
@@ -46,7 +43,6 @@
   "catOrganic": "Органические и здоровые продукты",
   "catEquipment": "Упаковка и оборудование",
   "catOther": "Другое направление",
-
   "positionTitle": "Ваша должность",
   "posDirector": "Руководитель / Директор",
   "posMarketing": "Маркетолог",
@@ -59,32 +55,27 @@
   "companyName": "Название компании",
   "companyNamePlaceholder": "Название вашей компании",
   "companyNameOptional": "Название компании (если есть)",
-
   "companyYearsTitle": "Сколько лет работает ваша компания?",
   "yearsUnder1": "Меньше 1 года",
   "years1to3": "1–3 года",
   "years3to10": "3–10 лет",
   "years10plus": "Более 10 лет",
-
   "standTypeTitle": "Какой стенд вам нужен?",
   "standTypeSubtitle": "Позже можно изменить вместе с менеджером",
   "standPremium": "Премиум стенд · 18 м²",
   "standStandard": "Стандартный стенд · 9 м²",
   "standArea": "Только площадь · 36 м²+",
   "standUnsure": "Ещё не определился — нужна консультация",
-
   "phone": "Ваш номер телефона",
   "phonePlaceholder": "+998 90 123 45 67",
   "phoneFromTelegram": "Взять из Telegram",
   "phoneInvalid": "Введите номер полностью, например: +998 90 123 45 67",
   "phoneNote": "Оператор свяжется именно по этому номеру",
-
   "submitTrust": "Отправка — без оплаты, за 30 секунд",
   "willAttendTitle": "Приготовим для вас именной бейдж",
   "willAttendQuestion": "Придёте в дни выставки (20–22 октября, Самарканд)?",
   "willAttendYes": "Да, обязательно приду",
   "willAttendNo": "Пока не уверен",
-
   "successStandTitle": "Ваша заявка принята!",
   "successStandText": "В течение 24 часов менеджер свяжется с вами: цены, свободные места и план площадки (PDF).",
   "successGuestTitle": "Спасибо!",
@@ -100,7 +91,6 @@
   "shareButton": "Отправить друзьям",
   "shareText": "🍽 Foodera Expo 2026 — крупнейшая продовольственная выставка Центральной Азии. 20–22 октября, Самарканд. Бесплатная регистрация:",
   "closeApp": "Закрыть",
-
   "alreadyRegisteredTitle": "Вы уже зарегистрированы",
   "alreadyRegisteredText": "Ваша заявка принята. До встречи — SOF EXPO, Самарканд, 20–22 октября!",
   "summaryType": "Тип",
@@ -113,7 +103,20 @@
   "shortWillAttend": "Приход",
   "yes": "Да",
   "no": "Нет",
-
   "errorGeneric": "Произошла ошибка. Попробуйте ещё раз.",
-  "errorAlreadyRegistered": "Вы уже зарегистрированы."
+  "errorAlreadyRegistered": "Вы уже зарегистрированы.",
+  "benefitsTitle": "Почему Foodera Expo?",
+  "benefitPartners": "Партнёры из Центральной Азии",
+  "benefitProducts": "Презентация новых продуктов",
+  "benefitMarkets": "Выход на новые рынки",
+  "benefitConnections": "Деловые связи и контракты",
+  "benefitDirections": "Новые направления для роста",
+  "statRetailValue": "182 трлн сум",
+  "statRetailLabel": "розница, Узбекистан (2024)",
+  "scarcityLine": "Осталось всего {n} премиум стендов",
+  "packageTitle": "Что вы получите с заявкой:",
+  "packagePdf": "Полный прайс и интерактивный план площадки (PDF)",
+  "packageReport": "Отчёт об аудитории и покупателях",
+  "packagePrice": "Фиксация ранней цены",
+  "contactTitle": "Есть вопросы?"
 }

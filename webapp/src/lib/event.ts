@@ -14,13 +14,21 @@ export const EVENT = {
     "assets/gallery/gallery-4.jpg",
   ],
   countries: [
-    { code: "UZ", flag: "assets/flags/uz.png" },
-    { code: "KZ", flag: "assets/flags/kz.png" },
-    { code: "KG", flag: "assets/flags/kg.png" },
-    { code: "TJ", flag: "assets/flags/tj.png" },
-    { code: "TM", flag: "assets/flags/tm.png" },
-    { code: "AF", flag: "assets/flags/af.png" },
+    { code: "UZ", flag: "assets/flags/uz.png", market: "$15–18B" },
+    { code: "KZ", flag: "assets/flags/kz.png", market: "$22–28B" },
+    { code: "AF", flag: "assets/flags/af.png", market: "$10–15B" },
+    { code: "TJ", flag: "assets/flags/tj.png", market: "$4–6B" },
+    { code: "TM", flag: "assets/flags/tm.png", market: "$4–6B" },
+    { code: "KG", flag: "assets/flags/kg.png", market: "$3–5B" },
   ],
+  /** Scarcity shown on the role screen — number from the site, update as needed. */
+  scarcity: { premiumStandsLeft: 38 },
+  /** Organizer contact (from sofexpo.uz). */
+  contact: {
+    phone: "+998 55 705 0 705",
+    phoneHref: "tel:+998557050705",
+    telegram: "https://t.me/sofexpo",
+  },
 } as const;
 
 /** Days until the expo starts; negative once it has started. */

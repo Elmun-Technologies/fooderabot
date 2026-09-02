@@ -2,6 +2,7 @@ import { t, type Language } from "../i18n";
 import { SHARE_URL } from "../lib/event";
 import { buildSummaryRows, type RegistrationDetails } from "../lib/registrationSummary";
 import { tg } from "../lib/telegram";
+import { ContactCard } from "./ContactCard";
 import { ResultScreen } from "./ResultScreen";
 
 export function SuccessScreen({
@@ -29,6 +30,7 @@ export function SuccessScreen({
           t(language, "whatNextStand2"),
           t(language, "whatNextStand3"),
         ]}
+        footer={<ContactCard language={language} />}
         action={
           <>
             <button type="button" className="button" onClick={share}>
@@ -56,6 +58,7 @@ export function SuccessScreen({
           ? [t(language, "whatNextGuest1"), t(language, "whatNextGuest2"), t(language, "whatNextGuest3")]
           : undefined
       }
+      footer={<ContactCard language={language} />}
       action={
         <>
           <button type="button" className="button" onClick={share}>

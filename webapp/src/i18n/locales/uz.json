@@ -7,7 +7,6 @@
   "selectRequired": "Variantlardan birini tanlang",
   "languageTitle": "Tilni tanlang",
   "languageSubtitle": "Choose your language / Выберите язык",
-
   "heroTagline": "Oziq-ovqat va ichimlik biznes ko'rgazmasi",
   "heroDatePlace": "20–22 oktabr, 2026 · SOF EXPO, Samarqand",
   "daysLeft": "boshlanishiga {n} kun qoldi",
@@ -24,13 +23,11 @@
   "countriesTitle": "Markaziy Osiyo va Afg'oniston bozori — bir joyda",
   "galleryTitle": "Foodera Expo galereya",
   "trustLine": "⚡ 30 sekunda · Hozir to'lov yo'q · 24 soat ichida javob",
-
   "formTitleStand": "Stend uchun ariza",
   "formTitleGuest": "Mehmon sifatida ro'yxatdan o'tish",
   "stepCategory": "Yo'nalish",
   "stepDetails": "Ma'lumotlar",
   "stepStand": "Stend",
-
   "categoryTitle": "Faoliyatingiz yo'nalishi qaysi biri?",
   "categorySubtitle": "Bu bo'yicha sizga eng mos stend paketini taklif qilamiz",
   "catDrinks": "Ichimliklar",
@@ -46,7 +43,6 @@
   "catOrganic": "Organik va sog'lom ovqatlanish",
   "catEquipment": "Qadoqlash va uskunalar",
   "catOther": "Boshqa yo'nalish",
-
   "positionTitle": "Lavozimingiz",
   "posDirector": "Rahbar / Direktor",
   "posMarketing": "Marketing menejer",
@@ -59,32 +55,27 @@
   "companyName": "Kompaniya nomi",
   "companyNamePlaceholder": "Kompaniyangiz nomi",
   "companyNameOptional": "Kompaniya nomi (agar mavjud bo'lsa)",
-
   "companyYearsTitle": "Kompaniyangiz necha yildan beri faoliyat yuritadi?",
   "yearsUnder1": "1 yildan kam",
   "years1to3": "1–3 yil",
   "years3to10": "3–10 yil",
   "years10plus": "10 yildan ortiq",
-
   "standTypeTitle": "Qanday stend sizga kerak?",
   "standTypeSubtitle": "Keyinchalik hamkor bilan birga o'zgartirish mumkin",
   "standPremium": "Premium stend · 18 m²",
   "standStandard": "Standart stend · 9 m²",
   "standArea": "Faqat maydon · 36 m²+",
   "standUnsure": "Hali aniq emas — maslahat kerak",
-
   "phone": "Telefon raqamingiz",
   "phonePlaceholder": "+998 90 123 45 67",
   "phoneFromTelegram": "Telegram'dan olish",
   "phoneInvalid": "Raqamni to'liq kiriting, masalan: +998 90 123 45 67",
   "phoneNote": "Operator aynan shu raqamda bog'lanadi",
-
   "submitTrust": "Yuborish — to'lovsiz, 30 sekunda",
   "willAttendTitle": "Siz uchun maxsus beydjik tayyorlaymiz",
   "willAttendQuestion": "Tadbir kunida (20–22 oktabr, Samarqand) kelasizmi?",
   "willAttendYes": "Ha, albatta kelaman",
   "willAttendNo": "Hozircha aniq emas",
-
   "successStandTitle": "Arizangiz qabul qilindi!",
   "successStandText": "Operatorlarimiz 24 soat ichida narxlar, bo'sh joylar va stend joylashuvi (PDF) bilan siz bilan bog'lanadi.",
   "successGuestTitle": "Rahmat!",
@@ -100,7 +91,6 @@
   "shareButton": "Do'stlarga yuborish",
   "shareText": "🍽 Foodera Expo 2026 — Markaziy Osiyo yirik oziq-ovqat ko'rgazmasi. 20–22 oktabr, Samarqand. Bepul ro'yxatdan o'tish:",
   "closeApp": "Yopish",
-
   "alreadyRegisteredTitle": "Siz allaqachon ro'yxatdan o'tgansiz",
   "alreadyRegisteredText": "Arizangiz qabul qilingan. Ko'rishguncha — SOF EXPO, Samarqand, 20–22 oktabr!",
   "summaryType": "Turi",
@@ -113,7 +103,20 @@
   "shortWillAttend": "Kelishi",
   "yes": "Ha",
   "no": "Yo'q",
-
   "errorGeneric": "Xatolik yuz berdi. Iltimos, qayta urinib ko'ring.",
-  "errorAlreadyRegistered": "Siz allaqachon ro'yxatdan o'tgansiz."
+  "errorAlreadyRegistered": "Siz allaqachon ro'yxatdan o'tgansiz.",
+  "benefitsTitle": "Nima uchun Foodera Expo?",
+  "benefitPartners": "Markaziy Osiyo hamkorlari",
+  "benefitProducts": "Yangi mahsulotlaringizni taqdim etish",
+  "benefitMarkets": "Yangi bozorlarga chiqish",
+  "benefitConnections": "Biznes aloqalar va shartnomalar",
+  "benefitDirections": "O'sish uchun yangi yo'nalishlar",
+  "statRetailValue": "182 trln so'm",
+  "statRetailLabel": "chakana savdo, O'zbekiston (2024)",
+  "scarcityLine": "Faqat {n} ta premium stend qoldi",
+  "packageTitle": "Ariza bilan nima olasiz:",
+  "packagePdf": "To'liq narxlar va interaktiv joy rejasi (PDF)",
+  "packageReport": "Auditoriya va xaridorlar hisoboti",
+  "packagePrice": "Erta narxni qulflash imkoniyati",
+  "contactTitle": "Savollaringiz bormi?"
 }

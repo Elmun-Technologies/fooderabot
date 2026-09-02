@@ -55,6 +55,10 @@ function boothBucket(spaceNeeded: string | undefined): "premium" | "standard" | 
 /** Internal helper — match a free-text years label to a bucket. */
 function yearsBucket(companyYears: string | undefined): "lt1" | "1to3" | "3to10" | "10plus" {
   const v = (companyYears ?? "").toLowerCase();
+  // Order matters: "3-10 yil" and "3–10 yil" both contain "10", so we
+  // must check the combined "3" ranges BEFORE the bare "10+" range, or
+  // every "3-10" submission would be mis-bucketed as 10+.
+  if (/(^|[^\d])3(\s*[–-]\s*|–|-)10/.test(v) || /\b3\s*to\s*10\b/.test(v)) return "3to10";
   if (v.includes("10")) return "10plus";
   if (v.includes("3")) return "3to10";
   if (v.includes("1")) return "1to3";

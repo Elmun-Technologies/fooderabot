@@ -1,105 +1,97 @@
 import { prisma } from "../db";
 import type { Language, RegistrationType } from "../types";
-import { botText } from "./i18n";
 import { notifyText } from "./bot";
+
+/**
+ * Marketing follow-up engine (Stage 4).
+ *
+ * Two sequences live in the DB now (`seed.ts` keeps them in sync with
+ * the original hardcoded copy):
+ *   - "nudge_unregistered"   — 3 stages at 3h / 24h / 72h
+ *   - "followup_registered"  — 1 stage  at 24h
+ *
+ * The engine reads the next pending step for every user / registration
+ * whose previous step's `afterMinutes` window has elapsed, dispatches
+ * the message (with the matching language), and advances the stage
+ * counter. The DB schema is the single source of truth, so an operator
+ * can edit the copy and timings from the admin panel (Stage 5) without
+ * a code change.
+ */
 
 const HOUR = 60 * 60 * 1000;
 
+function textFor(language: Language, uz: string, ru: string, en: string): string {
+  if (language === "ru") return ru;
+  if (language === "en") return en;
+  return uz;
+}
+
 /**
- * Marketing automation: users who opened the bot (picked a language) but
- * never finished the form get a short nudge sequence; users who did finish
- * get a different, non-pushy follow-up. Both stop after their schedule ends
- * so nobody gets spammed forever.
+ * Look up the next pending nudge step for a user who opened the bot
+ * (language set) but never finished the registration form.
  */
-
-function nudgeText(stage: 1 | 2 | 3, language: Language): string {
-  const texts: Record<1 | 2 | 3, Record<Language, string>> = {
-    1: {
-      uz: "Siz FOODERA EXPO 2026'ga ro'yxatdan o'tishni boshlagan edingiz 👋 Bor-yo'g'i 30 sekunda — yakunlab qo'yasizmi?",
-      ru: "Вы начали регистрацию на FOODERA EXPO 2026 👋 Это займёт всего 30 секунд — завершим?",
-      en: "You started registering for FOODERA EXPO 2026 👋 It only takes 30 seconds — want to finish it?",
-    },
-    2: {
-      uz: "Eslatma: FOODERA EXPO 2026'da stend joylari soni cheklangan. Yetkazib beruvchilar va xaridorlar bilan to'g'ridan-to'g'ri uchrashuv — ro'yxatdan o'tishni yakunlang.",
-      ru: "Напоминаем: на FOODERA EXPO 2026 количество стендов ограничено. Прямые встречи с поставщиками и байерами — завершите регистрацию.",
-      en: "Reminder: stand spots at FOODERA EXPO 2026 are limited. Direct meetings with suppliers and buyers — finish your registration.",
-    },
-    3: {
-      uz: "Bu — FOODERA EXPO 2026'ga ro'yxatdan o'tish haqidagi oxirgi eslatmamiz. 20–22 oktabr, SOF EXPO, Samarqand. Ishtirok etishni xohlasangiz, hoziroq yakunlang.",
-      ru: "Это последнее напоминание о регистрации на FOODERA EXPO 2026. 20–22 октября, SOF EXPO, Самарканд. Если хотите участвовать — завершите регистрацию сейчас.",
-      en: "This is our last reminder about registering for FOODERA EXPO 2026. October 20–22, SOF EXPO, Samarkand. Finish your registration now if you'd like to join.",
-    },
-  };
-  return texts[stage][language];
+async function nextNudgeStep(stage: number) {
+  return prisma.sequenceStep.findFirst({
+    where: { sequence: { key: "nudge_unregistered" }, order: stage + 1 },
+  });
 }
 
-const NUDGE_SCHEDULE: { stage: 1 | 2 | 3; afterMs: number }[] = [
-  { stage: 1, afterMs: 3 * HOUR },
-  { stage: 2, afterMs: 24 * HOUR },
-  { stage: 3, afterMs: 72 * HOUR },
-];
-
-function followUpText(type: RegistrationType, language: Language): string {
-  if (type === "STAND") {
-    const msg: Record<Language, string> = {
-      uz: "Stend arizangiz jarayonda 🗂 Hamkasb yoki hamkorlaringiz ham FOODERA EXPO 2026'da qatnashmoqchi bo'lsa, botimizni ular bilan bo'lishing.",
-      ru: "Ваша заявка на стенд в работе 🗂 Если коллеги или партнёры тоже хотят участвовать в FOODERA EXPO 2026 — поделитесь с ними ботом.",
-      en: "Your booth application is in progress 🗂 If colleagues or partners also want to join FOODERA EXPO 2026, feel free to share the bot with them.",
-    };
-    return msg[language];
-  }
-  const msg: Record<Language, string> = {
-    uz: "Beydjikingiz tayyorlanmoqda 🎟 Do'stlaringiz ham FOODERA EXPO 2026'ga kelmoqchi bo'lsa, botimizni ularga yuboring — birga boramiz!",
-    ru: "Ваш бейдж готовится 🎟 Если друзья тоже хотят прийти на FOODERA EXPO 2026 — отправьте им нашего бота, пойдём вместе!",
-    en: "Your badge is being prepared 🎟 If your friends want to join FOODERA EXPO 2026 too, share the bot with them — see you there together!",
-  };
-  return msg[language];
+/**
+ * Look up the next pending follow-up step for a registered user.
+ */
+async function nextFollowUpStep(stage: number) {
+  return prisma.sequenceStep.findFirst({
+    where: { sequence: { key: "followup_registered" }, order: stage + 1 },
+  });
 }
-
-const FOLLOWUP_SCHEDULE: { stage: 1; afterMs: number }[] = [{ stage: 1, afterMs: 24 * HOUR }];
 
 export async function runFollowUpJob(): Promise<void> {
   const now = Date.now();
 
-  for (const step of NUDGE_SCHEDULE) {
-    const threshold = new Date(now - step.afterMs);
-    const users = await prisma.user.findMany({
-      where: { registration: null, language: { not: null }, nudgeStage: step.stage - 1, createdAt: { lte: threshold } },
-      take: 200,
-    });
-
-    for (const user of users) {
-      const language = (user.language as Language) ?? "uz";
-      try {
-        await notifyText(Number(user.telegramId), nudgeText(step.stage, language), botText.openAppButton[language], language);
-      } catch (err) {
-        console.error("Failed to send nudge to user", user.id, err);
-      }
-      await prisma.user
-        .update({ where: { id: user.id }, data: { nudgeStage: step.stage, nudgeSentAt: new Date() } })
-        .catch((err) => console.error("Failed to record nudge stage for user", user.id, err));
+  // Nudge: users with no registration, language set, and a pending stage.
+  const nudgeUsers = await prisma.user.findMany({
+    where: { registration: null, language: { not: null } },
+    take: 200,
+  });
+  for (const user of nudgeUsers) {
+    const language = (user.language as Language) ?? "uz";
+    const step = await nextNudgeStep(user.nudgeStage);
+    if (!step) continue;
+    const threshold = new Date(now - step.afterMinutes * 60 * 1000);
+    // Only fire if the user has been around long enough for this step.
+    if (user.createdAt > threshold) continue;
+    const text = textFor(language, step.textUz, step.textRu, step.textEn);
+    try {
+      await notifyText(Number(user.telegramId), text, step.cta ? "📝 Ro'yxatdan o'tish" : undefined, language);
+    } catch (err) {
+      console.error("Failed to send nudge to user", user.id, err);
     }
+    await prisma.user
+      .update({ where: { id: user.id }, data: { nudgeStage: step.order, nudgeSentAt: new Date() } })
+      .catch((err) => console.error("Failed to record nudge stage for user", user.id, err));
   }
 
-  for (const step of FOLLOWUP_SCHEDULE) {
-    const threshold = new Date(now - step.afterMs);
-    const registrations = await prisma.registration.findMany({
-      where: { followUpStage: step.stage - 1, createdAt: { lte: threshold } },
-      include: { user: true },
-      take: 200,
-    });
-
-    for (const registration of registrations) {
-      const language = (registration.language as Language) ?? "uz";
-      try {
-        await notifyText(Number(registration.user.telegramId), followUpText(registration.type, language));
-      } catch (err) {
-        console.error("Failed to send follow-up for registration", registration.id, err);
-      }
-      await prisma.registration
-        .update({ where: { id: registration.id }, data: { followUpStage: step.stage, followUpSentAt: new Date() } })
-        .catch((err) => console.error("Failed to record follow-up stage for registration", registration.id, err));
+  // Follow-up: registered users with a pending follow-up stage.
+  const followUpRegs = await prisma.registration.findMany({
+    where: {},
+    take: 200,
+    include: { user: true },
+  });
+  for (const registration of followUpRegs) {
+    const step = await nextFollowUpStep(registration.followUpStage);
+    if (!step) continue;
+    const threshold = new Date(now - step.afterMinutes * 60 * 1000);
+    if (registration.createdAt > threshold) continue;
+    const language = (registration.language as Language) ?? "uz";
+    const text = textFor(language, step.textUz, step.textRu, step.textEn);
+    try {
+      await notifyText(Number(registration.user.telegramId), text);
+    } catch (err) {
+      console.error("Failed to send follow-up for registration", registration.id, err);
     }
+    await prisma.registration
+      .update({ where: { id: registration.id }, data: { followUpStage: step.order, followUpSentAt: new Date() } })
+      .catch((err) => console.error("Failed to record follow-up stage for registration", registration.id, err));
   }
 }
 
@@ -109,3 +101,5 @@ export function startFollowUpScheduler(intervalMs = 30 * 60 * 1000): void {
     runFollowUpJob().catch((err) => console.error("Follow-up job failed", err));
   }, intervalMs);
 }
+
+export type { RegistrationType };

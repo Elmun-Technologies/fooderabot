@@ -1,0 +1,66 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RegistrationType {
+  STAND
+  GUEST
+}
+
+enum RegistrationStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  telegramId   BigInt   @unique
+  username     String?
+  firstName    String?
+  lastName     String?
+  languageCode String?
+
+  // First-touch UTM attribution, captured from the /start deep-link payload.
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  startPayload String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registration Registration?
+}
+
+model Registration {
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
+
+  type     RegistrationType
+  language String // uz | ru | en - language chosen inside the web app
+
+  position        String
+  fullName        String
+  companyName     String?
+  companyYears    String?
+  companyActivity String?
+  spaceNeeded     String? // STAND only, square meters
+  willAttend      Boolean? // GUEST only
+
+  status       RegistrationStatus @default(PENDING)
+  amoLeadId    Int?
+  amoContactId Int?
+  syncError    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

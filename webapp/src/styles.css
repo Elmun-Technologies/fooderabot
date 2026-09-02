@@ -1,0 +1,150 @@
+:root {
+  --bg: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #1c1c1e);
+  --hint: var(--tg-theme-hint-color, #8e8e93);
+  --link: var(--tg-theme-link-color, #2f8f4e);
+  --button: var(--tg-theme-button-color, #2f8f4e);
+  --button-text: var(--tg-theme-button-text-color, #ffffff);
+  --secondary-bg: var(--tg-theme-secondary-bg-color, #f2f2f7);
+  --border: #e2e2e7;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.screen {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 100px;
+  gap: 16px;
+}
+
+.screen__title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 4px 0 0;
+}
+
+.screen__subtitle {
+  color: var(--hint);
+  font-size: 15px;
+  margin: -8px 0 4px;
+}
+
+.option-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border);
+  background: var(--secondary-bg);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.option-card:active {
+  transform: scale(0.98);
+}
+
+.option-card__title {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.option-card__desc {
+  color: var(--hint);
+  font-size: 13px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field__label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field__input {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--secondary-bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.field__input:focus {
+  outline: none;
+  border-color: var(--button);
+}
+
+.field__error {
+  color: #e53935;
+  font-size: 13px;
+}
+
+.button {
+  padding: 14px 20px;
+  border-radius: 14px;
+  border: none;
+  background: var(--button);
+  color: var(--button-text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button--secondary {
+  background: transparent;
+  color: var(--link);
+}
+
+.actions {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.badge-icon {
+  font-size: 48px;
+}

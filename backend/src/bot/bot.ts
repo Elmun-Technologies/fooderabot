@@ -4,8 +4,25 @@ import { prisma } from "../db";
 import { resolveUtmFromStartPayload } from "../lib/utm";
 import type { Language, RegistrationType } from "../types";
 import { botText } from "./i18n";
+import { buildLeadsMessage, buildStatsMessage } from "./stats";
 
 export const bot = new Telegraf(config.botToken);
+
+function isLeadsGroup(chatId: number): boolean {
+  return Boolean(config.leadsGroupChatId) && String(chatId) === String(config.leadsGroupChatId);
+}
+
+// /stats and /leads only answer inside the internal leads group - lead data
+// (names, phones, UTM) must not be readable from a random private chat.
+bot.command("stats", async (ctx) => {
+  if (!isLeadsGroup(ctx.chat.id)) return;
+  await ctx.reply(await buildStatsMessage());
+});
+
+bot.command("leads", async (ctx) => {
+  if (!isLeadsGroup(ctx.chat.id)) return;
+  await ctx.reply(await buildLeadsMessage());
+});
 
 function webAppUrlFor(language: Language): string {
   const url = new URL(config.webAppUrl);

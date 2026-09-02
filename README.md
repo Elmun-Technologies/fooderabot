@@ -82,7 +82,25 @@ faqat bittasi saqlanadi.
    `UTM_MAP_JSON` orqali qisqa kodlarni (masalan `ig`) to'liq UTM to'plamiga
    moslashtirish mumkin.
 
-### 2. amoCRM sozlash
+### 2. Leads guruhi (Telegram)
+
+Har bir yangi ariza (to'liq ma'lumot + UTM bilan) ichki Telegram supergruppasiga
+ham avtomatik yuboriladi, shu yerdan `/stats` va `/leads` komandalari orqali
+statistikani ko'rish mumkin.
+
+1. Botni (`@fooderaexpobot`) shu guruhga a'zo sifatida qo'shing (guruhda xabar
+   yuborish huquqi bilan — odatdagi a'zolik yetarli, admin shart emas).
+2. `.env`dagi `LEADS_GROUP_CHAT_ID` guruh ID'siga mos kelishini tekshiring
+   (default qiymat allaqachon `-1004298085307`ga o'rnatilgan).
+3. Guruh ichida:
+   - `/stats` — umumiy statistika: boshlaganlar, ro'yxatdan o'tganlar,
+     konversiya, stend/mehmon nisbati, bugungi arizalar, amoCRM sinxronizatsiya
+     holati, top UTM manbalar.
+   - `/leads` — oxirgi 10 ta arizaning qisqa ro'yxati.
+   Xavfsizlik uchun bu komandalar faqat `LEADS_GROUP_CHAT_ID` guruhida ishlaydi —
+   botga shaxsiy yozilganda javob bermaydi.
+
+### 3. amoCRM sozlash
 
 1. amoCRM'da **Settings → Integrations → shaxsiy integratsiya** yarating, uzoq
    muddatli (long-lived) access token oling.
@@ -101,7 +119,7 @@ faqat bittasi saqlanadi.
    (note)** ham qo'shiladi — shunday qilib field ID noto'g'ri sozlangan taqdirda
    ham hech qanday ma'lumot yo'qolmaydi.
 
-### 3. Backend
+### 4. Backend
 
 ```bash
 cd backend
@@ -111,7 +129,7 @@ npx prisma migrate deploy
 npm run dev             # yoki: npm run build && npm start
 ```
 
-### 4. Web App
+### 5. Web App
 
 ```bash
 cd webapp
@@ -126,7 +144,7 @@ npm run build             # production build -> dist/
 - `VITE_SHARE_URL` — "Do'stlarga yuborish" tugmasidagi havola (default:
   `https://t.me/FooderaExpoBot`).
 
-### 5. Docker bilan birgalikda ishga tushirish
+### 6. Docker bilan birgalikda ishga tushirish
 
 ```bash
 cp backend/.env.example backend/.env   # to'ldiring

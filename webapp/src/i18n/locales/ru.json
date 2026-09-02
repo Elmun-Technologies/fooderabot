@@ -361,6 +361,7 @@
   "floorTaken": "Занято",
   "floorSelected": "Выбранная зона",
   "floorTotal": "всего мест",
+  "floorBookedTotal": "занято по залу",
   "floorCta": "Забронировать эту зону",
   "floorHint": "Точное место фиксируется в договоре.",
   "marketRowsTitle": "Рынки региона, млрд $",

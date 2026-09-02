@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { t, type Language } from "../../i18n";
 import { EVENT_FACTS, VENUE_CARDS, loc } from "../../lib/content";
 import { useSamarkandClock } from "../../lib/countdown";
@@ -17,17 +18,34 @@ interface VenueProps {
 export function Venue({ language }: VenueProps) {
   const clock = useSamarkandClock();
   const city = loc(language, EVENT_FACTS.venue.city);
+  // If the venue art is missing from the deployment (production served a 404
+  // for /assets/venue-hall.*), we show a branded placeholder instead of an
+  // empty half-column — honest, quiet, and visibly intentional.
+  const [artFailed, setArtFailed] = useState(false);
 
   return (
     <section className="edl__section" id="venue">
       <div className="edl__container edl__container--wide">
         <div className="edl-venue">
           <Reveal variant="wipe" className="edl-venue__art">
-            <picture>
-              <source srcSet="/assets/venue-hall.avif" type="image/avif" />
-              <source srcSet="/assets/venue-hall.webp" type="image/webp" />
-              <img src="/assets/venue-hall.jpg" alt={t(language, "venueArtAlt")} loading="lazy" decoding="async" />
-            </picture>
+            {artFailed ? (
+              <div className="edl-venue__ph" role="img" aria-label={t(language, "venueArtAlt")}>
+                <Icon name="booth" size={46} />
+                <span>{t(language, "venueArtAlt")}</span>
+              </div>
+            ) : (
+              <picture>
+                <source srcSet="/assets/venue-hall.avif" type="image/avif" />
+                <source srcSet="/assets/venue-hall.webp" type="image/webp" />
+                <img
+                  src="/assets/venue-hall.jpg"
+                  alt={t(language, "venueArtAlt")}
+                  loading="lazy"
+                  decoding="async"
+                  onError={() => setArtFailed(true)}
+                />
+              </picture>
+            )}
             <span className="edl-venue__clock">
               <b>{clock}</b>
               <i>{city}</i>

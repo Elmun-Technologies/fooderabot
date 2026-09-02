@@ -70,10 +70,13 @@ const PACKAGES: PackageDef[] = [
 export function Packages({ language, onPick, stats }: PackagesProps) {
   /** Which booth type the leads actually pick — drives the badge and the
    *  "N left" line. Labels are matched across all three languages, because
-   *  the database stores whatever the applicant read (see aggregateByOption). */
+   *  the database stores whatever the applicant read (see aggregateByOption).
+   *  The "most chosen" mark only appears for a STRICT leader: with one stand
+   *  and one guest the "leader" is noise, and a gold border on a random card
+   *  reads as a broken selection state. */
   const popularity = aggregateByOption(stats?.standTypes ?? [], STAND_TYPE_OPTIONS);
   const ranked = PACKAGES.map((p) => ({ key: p.key, n: popularity.get(p.key) ?? 0 })).sort((a, b) => b.n - a.n);
-  const topKey = ranked[0] && ranked[0].n > 0 ? ranked[0].key : null;
+  const topKey = ranked[0] && ranked[0].n > 0 && ranked[0].n > (ranked[1]?.n ?? 0) ? ranked[0].key : null;
 
   return (
     <section className="edl__section edl__section--paper" id="packages">

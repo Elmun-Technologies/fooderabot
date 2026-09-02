@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { t, type Language } from "../../i18n";
 import { EVENT_FACTS, MARKET_HEADLINE, MARKET_ROWS, loc } from "../../lib/content";
 import { useCountUp } from "../../lib/useCountUp";
@@ -5,6 +6,32 @@ import { useInView } from "../../lib/useInView";
 import { Reveal } from "./Reveal";
 
 const MAX_B = Math.max(...MARKET_ROWS.map((r) => r.high));
+
+/**
+ * A flag that degrades honestly. When the PNG/AVIF is missing from the
+ * deployment (the 404 case seen in production), the browser's broken-image
+ * glyph is exactly the "fake/unfinished" look this page must never give —
+ * so on error the <img> hides itself and a branded disc with the country
+ * code stays behind. No made-up imagery, no glitch.
+ */
+function Flag({ code, small }: { code: string; small?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={`edl-flagph${small ? " edl-flagph--sm" : ""}`}>
+      <span aria-hidden="true">{code.toUpperCase()}</span>
+      {!failed ? (
+        <img
+          src={`/assets/flags/${code}.${small ? "avif" : "png"}`}
+          alt=""
+          aria-hidden="true"
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      ) : null}
+    </span>
+  );
+}
 
 export function Market({ language }: { language: Language }) {
   const { ref, inView } = useInView<HTMLUListElement>({ threshold: 0.25 });
@@ -21,7 +48,7 @@ export function Market({ language }: { language: Language }) {
         <div className="edl-market__head">
           {MARKET_HEADLINE.map((stat, i) => (
             <Reveal key={stat.label.uz} delay={Math.min(i, 2) as 0 | 1 | 2}>
-              <HeadlineStat value={stat.value} suffix={stat.suffix} label={loc(language, stat.label)} />
+              <HeadlineStat value={stat.value} suffix={loc(language, stat.suffix)} label={loc(language, stat.label)} />
             </Reveal>
           ))}
         </div>
@@ -33,7 +60,7 @@ export function Market({ language }: { language: Language }) {
         <ul className="edl-market__rows" ref={ref}>
           {MARKET_ROWS.map((row, i) => (
             <li className="edl-market__row" key={row.code}>
-              <img className="edl-market__flag" src={`/assets/flags/${row.code}.png`} alt={row.code.toUpperCase()} loading="lazy" />
+              <Flag code={row.code} />
               <span className="edl-market__name">{loc(language, row.name)}</span>
               <span className="edl-market__bar" aria-hidden="true">
                 <span
@@ -44,7 +71,7 @@ export function Market({ language }: { language: Language }) {
                   }}
                 />
               </span>
-              <span className="edl-market__val">{row.value}</span>
+              <span className="edl-market__val">{loc(language, row.value)}</span>
             </li>
           ))}
         </ul>
@@ -54,7 +81,7 @@ export function Market({ language }: { language: Language }) {
             <span>{t(language, "flagsLabel")}</span>
             <span className="edl-market__flags">
               {MARKET_ROWS.map((row) => (
-                <img key={row.code} src={`/assets/flags/${row.code}.avif`} alt="" loading="lazy" />
+                <Flag key={row.code} code={row.code} small />
               ))}
             </span>
           </p>

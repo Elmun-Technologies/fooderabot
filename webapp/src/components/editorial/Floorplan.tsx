@@ -32,14 +32,19 @@ export function Floorplan({ language, stats, onPick }: FloorplanProps) {
   const [hover, setHover] = useState<string | null>(null);
   const [selected, setSelected] = useState<string>("A");
 
+  /** Physical inventory from the live snapshot; null = organiser data not configured. */
+  const inventory = stats?.inventory ?? null;
+
   const zones = useMemo(() => {
     const totalCells = HALL_ZONES.reduce((sum, z) => sum + z.cells, 0);
-    const booked = stats?.inventory?.booked ?? null;
+    // No inventory → no colored cells: an empty hall must not impersonate
+    // a half-booked one. With inventory, `booked` spreads proportionally.
+    const booked = inventory?.booked ?? null;
     return HALL_ZONES.map((zone) => {
       const taken = booked === null ? 0 : Math.min(zone.cells, Math.round((zone.cells * booked) / Math.max(1, totalCells)));
       return { ...zone, taken, free: Math.max(0, zone.cells - taken) };
     });
-  }, [stats]);
+  }, [inventory]);
 
   const active = zones.find((z) => z.id === (hover ?? selected)) ?? zones[0];
 
@@ -136,17 +141,24 @@ export function Floorplan({ language, stats, onPick }: FloorplanProps) {
             <span className="edl__eyebrow">{t(language, "floorSelected")}</span>
             <h3 className="edl-floor__zone">{loc(language, active.label)}</h3>
             <p className="edl-floor__desc">{loc(language, active.desc)}</p>
-            {stats ? (
-              <div className="edl-floor__numbers">
-                <span>
-                  <b>{active.free}</b>
-                  <i>{t(language, "floorFree")}</i>
-                </span>
-                <span>
-                  <b>{active.cells}</b>
-                  <i>{t(language, "floorTotal")}</i>
-                </span>
-              </div>
+            {inventory ? (
+              <>
+                <div className="edl-floor__numbers">
+                  <span>
+                    <b>{active.free}</b>
+                    <i>{t(language, "floorFree")}</i>
+                  </span>
+                  <span>
+                    <b>{inventory.booked}</b>
+                    <i>{t(language, "floorBookedTotal")}</i>
+                  </span>
+                  <span>
+                    <b>{active.cells}</b>
+                    <i>{t(language, "floorTotal")}</i>
+                  </span>
+                </div>
+                <p className="edl-floor__label">{inventory.label}</p>
+              </>
             ) : (
               <p className="edl-floor__offline">{t(language, "mixPending")}</p>
             )}

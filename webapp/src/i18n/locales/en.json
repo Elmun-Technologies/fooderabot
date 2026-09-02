@@ -361,6 +361,7 @@
   "floorTaken": "Taken",
   "floorSelected": "Selected zone",
   "floorTotal": "booths in total",
+  "floorBookedTotal": "booked hall-wide",
   "floorCta": "Book this zone",
   "floorHint": "The exact position is confirmed in the contract.",
   "marketRowsTitle": "Regional markets, $ bn",

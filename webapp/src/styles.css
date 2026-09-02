@@ -1140,6 +1140,12 @@ img {
   padding: var(--space-10) 0;
 }
 
+/* Anchor jumps (nav scroll-spy, in-page links) must land with the section
+   heading BELOW the sticky masthead, not underneath it. */
+.edl__section[id] {
+  scroll-margin-top: 84px;
+}
+
 .edl__section--dark {
   background: var(--night);
   color: var(--ink-on-dark);
@@ -1450,13 +1456,18 @@ img {
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: var(--space-5);
+  /* fill the grid cell: equal-height cards, all CTAs on one baseline */
+  height: 100%;
+  min-width: 0;
   transition: border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 
-.edl-package:hover {
-  border-color: var(--night);
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-3);
+@media (hover: hover) {
+  .edl-package:hover {
+    border-color: var(--night);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-3);
+  }
 }
 
 .edl-package--featured {
@@ -1465,8 +1476,10 @@ img {
   border-color: var(--night);
 }
 
-.edl-package--featured:hover {
-  border-color: var(--gold);
+@media (hover: hover) {
+  .edl-package--featured:hover {
+    border-color: var(--gold);
+  }
 }
 
 .edl-package--featured .edl-package__area,
@@ -1590,12 +1603,14 @@ img {
   color: var(--night);
 }
 
-.edl-package--featured .edl-package__cta:hover {
-  background: var(--gold-2);
-}
+@media (hover: hover) {
+  .edl-package--featured .edl-package__cta:hover {
+    background: var(--gold-2);
+  }
 
-.edl-package__cta:hover {
-  background: var(--ink);
+  .edl-package__cta:hover {
+    background: var(--ink);
+  }
 }
 
 /* ---------- Why editorial (3 rows, asymmetric) ---------- */
@@ -2035,14 +2050,23 @@ img {
 
 /* ------------------------------- reveal ------------------------------- */
 
+/* The wipe must live on a CHILD, not on the observed element itself: a fully
+   clipped element reports intersectionRatio 0 to IntersectionObserver (Chrome
+   clips the target's own rect), so a self-clipped reveal can NEVER trigger —
+   the venue art sat invisible forever. The wrapper stays unclipped and
+   observable; its single child carries the clip. */
 .edl__reveal--wipe {
   opacity: 1;
   transform: none;
+}
+
+.edl__reveal--wipe > * {
+  display: block;
   clip-path: inset(0 100% 0 0);
   transition: clip-path var(--dur-slower) var(--ease-out);
 }
 
-.edl__reveal--wipe.edl__reveal--in {
+.edl__reveal--wipe.edl__reveal--in > * {
   clip-path: inset(0 0 0 0);
 }
 
@@ -2803,6 +2827,12 @@ img {
   font-family: var(--font-text);
   color: var(--ink);
   overflow: hidden;
+  /* The tile must fill its grid cell so every card in a row is equal height
+     and the foot line (→ / N ta ariza) sits on one baseline; min-width: 0
+     keeps a long Russian direction name from blowing up the column. */
+  width: 100%;
+  min-width: 0;
+  height: 100%;
   transition: transform var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
 }
 
@@ -2817,14 +2847,16 @@ img {
   transition: transform var(--dur-base) var(--ease-out);
 }
 
-.edl-cat:hover {
-  transform: translateY(-3px);
-  border-color: var(--night);
-  box-shadow: var(--shadow-2);
-}
+@media (hover: hover) {
+  .edl-cat:hover {
+    transform: translateY(-3px);
+    border-color: var(--night);
+    box-shadow: var(--shadow-2);
+  }
 
-.edl-cat:hover::before {
-  transform: scaleX(1);
+  .edl-cat:hover::before {
+    transform: scaleX(1);
+  }
 }
 
 .edl-cat:active {
@@ -2843,11 +2875,13 @@ img {
   transition: border-color var(--dur-base) var(--ease-out), background var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-spring);
 }
 
-.edl-cat:hover .edl-cat__icon {
-  border-color: var(--gold);
-  background: var(--night);
-  color: var(--gold);
-  transform: rotate(-6deg) scale(1.04);
+@media (hover: hover) {
+  .edl-cat:hover .edl-cat__icon {
+    border-color: var(--gold);
+    background: var(--night);
+    color: var(--gold);
+    transform: rotate(-6deg) scale(1.04);
+  }
 }
 
 .edl-cat__label {
@@ -2856,7 +2890,11 @@ img {
   font-size: var(--fs-md);
   line-height: var(--lh-snug);
   letter-spacing: var(--tracking-tight);
-  min-height: 2.4em;
+  /* Three lines of the longest localized name must always fit — clipping a
+     direction name was one of the "fake" signals on the live site. */
+  min-height: 3.6em;
+  overflow-wrap: break-word;
+  text-wrap: balance;
 }
 
 .edl-cat__foot {
@@ -2869,6 +2907,8 @@ img {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
+  /* pinned to the card bottom, so the foot line is level across the row */
+  margin-top: auto;
 }
 
 .edl-cat__arrow {
@@ -2876,8 +2916,10 @@ img {
   color: var(--gold-deep);
 }
 
-.edl-cat:hover .edl-cat__arrow {
-  transform: translateX(4px);
+@media (hover: hover) {
+  .edl-cat:hover .edl-cat__arrow {
+    transform: translateX(4px);
+  }
 }
 
 /* --------------------------------- programme -------------------------------- */
@@ -3002,6 +3044,10 @@ img {
 
 .edl-program__row {
   display: grid;
+  /* time | spine | body — the kind tag drops BELOW the body on small
+     screens. It used to claim column 3 of a 3-column grid, which pushed the
+     body into the 52px time column and shattered every row into one-word
+     lines. Desktop re-adds a fourth column for the tag (see 720 block). */
   grid-template-columns: 52px 12px 1fr;
   gap: var(--space-3);
   align-items: start;
@@ -3058,16 +3104,16 @@ img {
 }
 
 .edl-program__kind {
-  grid-row: 1;
+  grid-row: 2;
   grid-column: 3;
-  justify-self: end;
+  justify-self: start;
   align-self: start;
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: var(--tracking-eyebrow);
   font-weight: 700;
   color: var(--ink-faint);
-  padding-top: 6px;
+  padding-top: 2px;
 }
 
 .edl-program__row--b2b .edl-program__kind {
@@ -3076,7 +3122,10 @@ img {
 
 .edl-program__body {
   padding-bottom: var(--space-2);
-  padding-right: 84px;
+  /* the kind tag no longer overlays the body (it has its own column on
+     desktop, its own row on mobile), so no reserve padding is needed */
+  padding-right: 0;
+  min-width: 0;
 }
 
 .edl-program__body h3 {
@@ -3093,7 +3142,8 @@ img {
   font-size: var(--fs-sm);
   line-height: var(--lh-normal);
   color: var(--ink-muted);
-  max-width: 60ch;
+  max-width: 62ch;
+  overflow-wrap: break-word;
 }
 
 .edl-program__foot {
@@ -3132,9 +3182,12 @@ img {
   transition: opacity var(--dur-base) var(--ease-out);
 }
 
-.edl-package--spot:hover .edl-package__spot {
-  opacity: 1;
+@media (hover: hover) {
+  .edl-package--spot:hover .edl-package__spot {
+    opacity: 1;
+  }
 }
+/* touch: :hover latches after a tap, so the spotlight simply never shows */
 
 .edl-package--top {
   border-color: var(--gold);
@@ -3153,10 +3206,16 @@ img {
   place-items: center;
   background: repeating-linear-gradient(45deg, rgb(201 166 107 / 0.16) 0 2px, transparent 2px 5px);
   transition: transform var(--dur-slow) var(--ease-spring);
+  /* the "Консультация" card has no meaningful m² — the scale square must
+     still read as a square, never shrink to a dash */
+  min-width: 40px;
+  min-height: 40px;
 }
 
-.edl-package:hover .edl-package__square {
-  transform: scale(1.07) rotate(-1deg);
+@media (hover: hover) {
+  .edl-package:hover .edl-package__square {
+    transform: scale(1.07) rotate(-1deg);
+  }
 }
 
 .edl-package__square i {
@@ -3198,8 +3257,10 @@ img {
   transition: transform var(--dur-base) var(--ease-out);
 }
 
-.edl-package__cta:hover svg {
-  transform: translateX(3px);
+@media (hover: hover) {
+  .edl-package__cta:hover svg {
+    transform: translateX(3px);
+  }
 }
 
 .edl-included {
@@ -3248,7 +3309,9 @@ img {
 
 .edl-market__head {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* stacked on a phone: "58 –78 mlrd $" cannot fit a ~100px column without
+     shredding the unit onto its own subscript-looking line */
+  grid-template-columns: 1fr;
   gap: var(--space-3);
   margin-top: var(--space-6);
 }
@@ -3274,9 +3337,13 @@ img {
 
 .edl-market__statnum i {
   font-style: normal;
-  font-size: var(--fs-sm);
+  /* one unit size on every stat card, sitting on the number's baseline —
+     the old smaller italic read as a random subscript ("–78", "mlrd $") */
+  font-size: var(--fs-md);
   color: var(--gold-deep);
-  margin-left: 2px;
+  margin-left: 4px;
+  vertical-align: baseline;
+  white-space: nowrap;
 }
 
 .edl-market__statlbl {
@@ -3758,6 +3825,12 @@ img {
   font-size: var(--fs-sm);
   line-height: var(--lh-normal);
   color: var(--ink-muted);
+  /* a readable measure: the old fixed 3-col layout left ~110px for this,
+     which rendered one word per line */
+  max-width: 34ch;
+  text-wrap: pretty;
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 .edl-mix {
@@ -4299,8 +4372,12 @@ img {
     grid-column: span 2;
   }
 
+  /* Columns are driven by MINIMUM WIDTH, not by a fixed count: a 13-tile
+     grid squeezed into 7 columns of ~140px clipped every long direction
+     name ("Продовольственн…"). auto-fill keeps each tile ≥200px and lets
+     the column count follow the viewport. */
   .edl-cats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   }
 
   .edl-aud {
@@ -4310,6 +4387,11 @@ img {
   .edl-included {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* three stacked stat cards on a phone, three in a row from here up */
+  .edl-market__head {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 720px) {
@@ -4317,9 +4399,8 @@ img {
     font-size: var(--fs-5xl);
   }
 
-  .edl-nav__links {
-    display: flex;
-  }
+  /* nav links appear only from 1200px — below that the six RU/EN labels +
+     countdown + CTA overflowed the bar and pushed the page 250px wide */
 
   .edl-nav__cd {
     display: inline-flex;
@@ -4334,7 +4415,19 @@ img {
   }
 
   .edl-cats {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  }
+
+  /* desktop: the kind tag (ЭКСПОЗИЦИЯ / B2B / СЦЕНА) gets its own fourth
+     column, top-aligned with the heading — same visual row, no overlay */
+  .edl-program__row {
+    grid-template-columns: 52px 12px 1fr auto;
+  }
+
+  .edl-program__kind {
+    grid-row: 1;
+    grid-column: 4;
+    justify-self: end;
   }
 
   .edl-packages {
@@ -4380,11 +4473,20 @@ img {
   }
 
   .edl-cats {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
   }
 
+  /* Two comfortable reader columns here (the text column stays ≥260px);
+     a third column only appears from 1200px where it is ≥300px wide —
+     at 1040 the old fixed 3-col layout squeezed the text to ~110px and
+     every description collapsed to one word per line. */
   .edl-aud {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* the programme reads best a little wider than the default 640 container */
+  #programme .edl__container {
+    max-width: 800px;
   }
 
   .edl-included {
@@ -4393,6 +4495,20 @@ img {
 
   .edl-hero {
     padding-bottom: var(--space-11);
+  }
+}
+
+@media (min-width: 1200px) {
+  #audience .edl__container {
+    max-width: 1120px;
+  }
+
+  .edl-aud {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .edl-nav__links {
+    display: flex;
   }
 }
 
@@ -4565,4 +4681,87 @@ img {
 .edl-mix__split {
   display: block;
   margin-bottom: var(--space-5);
+}
+
+/* ==========================================================================
+   Production layout pass — honest images, level rows, readable columns
+   Everything below fixes what the live site showed at 1440/1280/1024/768/390:
+   clipped direction names, one-word lines, misaligned package CTAs, a broken
+   programme grid, fused hero words and broken-image glyphs for missing
+   /assets files. No new components, no animation libraries — CSS + markup.
+   ========================================================================== */
+
+/* Decorative layers that intentionally bleed off-canvas (marquee track,
+   hero art/glow) must never widen the document: `clip` does not create a
+   scroll container, so position: fixed and anchors keep working. */
+body {
+  overflow-x: clip;
+}
+
+/* ---- missing-flag placeholder (Market) ------------------------------------
+   A branded disc with the country code sits UNDER the flag image; if the
+   PNG/AVIF 404s, the <img> removes itself and the disc is what remains —
+   never the browser's broken-image glyph. */
+.edl-flagph {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--night);
+  color: var(--gold);
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 4px rgb(20 23 31 / 0.2);
+  overflow: hidden;
+}
+
+.edl-flagph--sm {
+  width: 22px;
+  height: 22px;
+  font-size: 8px;
+  filter: grayscale(0);
+}
+
+.edl-flagph img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+/* ---- missing venue art placeholder ---------------------------------------- */
+.edl-venue__ph {
+  aspect-ratio: 4 / 3;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--night-2);
+  color: var(--gold);
+  text-align: center;
+}
+
+.edl-venue__ph span {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+  color: var(--ink-on-dark-muted);
+  max-width: 30ch;
+  line-height: var(--lh-normal);
+}
+
+/* which inventory pool the floor numbers refer to ("Premium 18 m²") — the
+   label travels with the data from the organiser's config, so it prints as-is */
+.edl-floor__label {
+  margin: calc(var(--space-2) * -1) 0 0;
+  font-size: var(--fs-xs);
+  color: var(--ink-on-dark-muted);
 }

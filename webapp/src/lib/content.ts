@@ -80,8 +80,9 @@ export interface MarketRow {
   /** Low bound in $B — drives the bar width. */
   low: number;
   high: number;
-  /** Written exactly as the organiser publishes it. */
-  value: string;
+  /** Written exactly as the organiser publishes it — localized unit only
+   *  (mlrd / млрд / bn); the figures themselves are identical everywhere. */
+  value: Loc;
 }
 
 export const MARKET_ROWS: MarketRow[] = [
@@ -90,59 +91,59 @@ export const MARKET_ROWS: MarketRow[] = [
     name: { uz: "Qozog'iston", ru: "Казахстан", en: "Kazakhstan" },
     low: 22,
     high: 28,
-    value: "$22–28 mlrd",
+    value: { uz: "$22–28 mlrd", ru: "$22–28 млрд", en: "$22–28 bn" } as Loc,
   },
   {
     code: "uz",
     name: { uz: "O'zbekiston", ru: "Узбекистан", en: "Uzbekistan" },
     low: 15,
     high: 18,
-    value: "$15–18 mlrd",
+    value: { uz: "$15–18 mlrd", ru: "$15–18 млрд", en: "$15–18 bn" } as Loc,
   },
   {
     code: "af",
     name: { uz: "Afg'oniston", ru: "Афганистан", en: "Afghanistan" },
     low: 10,
     high: 15,
-    value: "$10–15 mlrd",
+    value: { uz: "$10–15 mlrd", ru: "$10–15 млрд", en: "$10–15 bn" } as Loc,
   },
   {
     code: "tj",
     name: { uz: "Tojikiston", ru: "Таджикистан", en: "Tajikistan" },
     low: 4,
     high: 6,
-    value: "$4–6 mlrd",
+    value: { uz: "$4–6 mlrd", ru: "$4–6 млрд", en: "$4–6 bn" } as Loc,
   },
   {
     code: "tm",
     name: { uz: "Turkmaniston", ru: "Туркменистан", en: "Turkmenistan" },
     low: 4,
     high: 6,
-    value: "$4–6 mlrd",
+    value: { uz: "$4–6 mlrd", ru: "$4–6 млрд", en: "$4–6 bn" } as Loc,
   },
   {
     code: "kg",
     name: { uz: "Qirg'iziston", ru: "Кыргызстан", en: "Kyrgyzstan" },
     low: 3,
     high: 5,
-    value: "$3–5 mlrd",
+    value: { uz: "$3–5 mlrd", ru: "$3–5 млрд", en: "$3–5 bn" } as Loc,
   },
 ];
 
 export const MARKET_HEADLINE = [
   {
     value: 125,
-    suffix: "M+",
+    suffix: { uz: "M+", ru: "млн+", en: "M+" } as Loc,
     label: { uz: "mintaqadagi iste'molchi", ru: "потребителей в регионе", en: "consumers in the region" } as Loc,
   },
   {
     value: 58,
-    suffix: "–78 mlrd $",
+    suffix: { uz: "–78 mlrd $", ru: "–78 млрд $", en: "–78 bn $" } as Loc,
     label: { uz: "umumiy bozor hajmi", ru: "общий объём рынка", en: "total regional market" } as Loc,
   },
   {
     value: 182,
-    suffix: " trln so'm",
+    suffix: { uz: " trln so'm", ru: " трлн сум", en: " trln UZS" } as Loc,
     label: { uz: "O'zbekistonda ulgurji savdo, 2024", ru: "оптовая торговля в Узбекистане, 2024", en: "wholesale trade in Uzbekistan, 2024" } as Loc,
   },
 ];

@@ -26,8 +26,9 @@ webapp/    React + TypeScript + Vite — Telegram Mini App (Web App)
 
 ## Konversiya uchun qilingan dizayn qarorlari
 
-- **Birinchi ekran = event landing**: logo, haqiqiy expo fotosi, sana (20–22 oktabr,
-  2026), joy (SOF EXPO, Samarqand), "boshlanishiga N kun qoldi" countdown'i.
+- **Birinchi ekran = event landing**: brend hero (logo + illustratsiya), sana
+  (20–22 oktabr, 2026), joy (SOF EXPO, Samarqand), jonli "boshlanishiga N kun
+  qoldi" countdown'i, bozor statistikasi va 6 davlat bayrog'i.
 - **Ijtimoiy isbot**: 125M+ iste'molchi, 6 mamlakat, $58–78 mlrd bozor + Markaziy
   Osiyo bayroqlari (saytdagi ma'lumotlar).
 - **Ishonch mikromatni**: "30 sekunda · Hozir to'lov yo'q · 24 soat ichida javob".
@@ -129,13 +130,17 @@ npx prisma migrate deploy
 npm run dev             # yoki: npm run build && npm start
 ```
 
+- `SKIP_BOT=1` — botni va follow-up shedulerni o'chirib, faqat API serverni
+  ishga tushiradi (lokal test / faqat webapp kerak bo'lganda).
+
 ### 5. Web App
 
 ```bash
 cd webapp
 npm install
 npm run dev              # lokal test uchun (Telegram tashqarisida ham ochiladi;
-                         # /api/* so'rovlari localhost:3000 dagi backendga proksi qilinadi)
+                         # /api/* so'rovlari localhost:3000 dagi backendga proksi qilinadi,
+                         # API_PROXY_TARGET bilan boshqa portga yo'naltirish mumkin)
 npm run build             # production build -> dist/
 ```
 
@@ -143,8 +148,26 @@ npm run build             # production build -> dist/
   bir domen orqali `/api/` proksisi ishlatiladi, pastga qarang).
 - `VITE_SHARE_URL` — "Do'stlarga yuborish" tugmasidagi havola (default:
   `https://t.me/FooderaExpoBot`).
+- Telegram **tashqarisida** (masalan lokal preview'da) `initData` bo'lmagani
+  uchun DEV build avtomatik demo rejimida ishlaydi — forma to'liq ko'rib
+  chiqiladi, lekin real API'ga yozmaydi. Production build'da bu rejim
+  umuman mavjud emas.
 
-### 6. Docker bilan birgalikda ishga tushirish
+### 6. Fly.io — bitta image, bitta domen (tavsiya etiladi)
+
+```bash
+fly deploy          # repo TUBIDAN (root Dockerfile webapp+backend ni birga yig'adi)
+```
+
+Root `Dockerfile` webapp'ni yig'ib, backend image'iga kopiyalaydi va Express
+`/` da statik fayllarni, `/api/*` da API'ni xizmat qiladi. Natijada Mini App va
+API **bir xil HTTPS domenda** bo'ladi: CORS ham, `VITE_API_BASE_URL` ham kerak
+bo'lmaydi — "oxirida xatolik" turidagi deploy muammolarining asosiy sababi
+shu yo'l bilan yo'qoladi. BotFather'da Menu Button / web app URL sifatida
+`https://<app>.fly.dev` ni ko'rsating (`WEBAPP_URL` secret'ini ham shunga
+qo'ying).
+
+### 7. Docker compose bilan birgalikda ishga tushirish
 
 ```bash
 cp backend/.env.example backend/.env   # to'ldiring
@@ -159,13 +182,14 @@ HTTPS ortida ishga tushiring).
 
 ## Event ma'lumotlari va kontenti
 
-- Event faktalari (sana, joy, galereya rasmlari, bayroqlar) `webapp/src/lib/event.ts`
-  faylida — sana yoki joy o'zgarsa shu faylni tahrirlash kifoya.
-- Brend logotiplari: `webapp/public/assets/foodera-logo.svg` (ochiq fon) va
-  `foodera-logo-light.svg` (qorong'i fon/foto ustida). Rasmiy logoni almashtirmoqchi
-  bo'lsangiz, shu ikki faylni yangilang.
-- Galereya va bayroq rasmlari `webapp/public/assets/{gallery,flags}/` ichida
-  (saytdan olingan, mobil uchun siqilgan).
+- Event faktalari (sana, joy, bozor raqamlari) `webapp/src/lib/event.ts` va
+  `webapp/src/i18n/locales/*.json` fayllarida — sana yoki joy o'zgarsa shu
+  fayllarni tahrirlash kifoya. Countdown `2026-10-20T09:00+05:00` gacha sanaydi
+  (`webapp/src/components/Landing.tsx`).
+- Brend logotipi: `webapp/public/logo.png`. Hero fonidagi illustratsiya:
+  `webapp/public/assets/hero-illustration.jpg` — haqiqiy expo fotosi paydo
+  bo'lsa shu faylni almashtiring (komponent o'zgartirish shart emas).
+- Davlat bayroqlari `webapp/public/assets/flags/` ichida.
 
 ## Muhim texnik eslatmalar
 
@@ -173,8 +197,15 @@ HTTPS ortida ishga tushiring).
   imzolangan `initData`ni HMAC-SHA256 orqali tasdiqlaydi
   (`backend/src/lib/validateInitData.ts`). Bu soxta/robot so'rovlarning oldini oladi.
 - **Telefon olish**: `WebApp.requestContact` (Bot API 7.2+) foydalanuvchidan bitta
-  tasdiq bilan raqamni baham ko'radi; versiya eskirsa yoki rad etilsa — qo'lda kiritish
-  doim ochiq (`webapp/src/lib/telegram.ts`).
+  tasdiq bilan raqamni baham ko'radi. Telefon maydoniga **birinchi tap**dayoq
+  raqam Telegram'dan avtomatik kiritiladi (maydon bo'sh bo'lsa, ekran ochilganda
+  bir marta o'zi ham so'raydi); raqam callback'ning ikkinchi argumentida keladi —
+  `initDataUnsafe`da emas (`webapp/src/lib/telegram.ts`). Versiya eskirsa yoki
+  rad etilsa — qo'lda kiritish doim ochiq.
+- **Xatolik ekrani ma'lumotni yo'qotmaydi**: submit muvaffaqiyatsiz bo'lsa
+  "Qayta urinish" (o'sha payload bilan) va "Ma'lumotlarni tahrirlash" (forma
+  to'ldirilgan holda ochiladi) tugmalari ko'rsatiladi, texnik sabab kichik
+  matn bilan yoziladi — deploy muammosini joyida diagnostika qilish mumkin.
 - **amoCRM sinxronizatsiyasi muvaffaqiyatsiz bo'lsa** ham foydalanuvchining ro'yxatdan
   o'tishi bazada saqlanib qoladi (`status = FAILED`, `syncError` maydonida sabab) —
   keyinchalik qo'lda yoki alohida retry job bilan qayta yuborish mumkin.

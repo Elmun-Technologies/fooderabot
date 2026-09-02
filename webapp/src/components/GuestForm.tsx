@@ -22,17 +22,20 @@ export function GuestForm({
   submitting,
   onBack,
   onSubmit,
+  initial,
 }: {
   language: Language;
   submitting: boolean;
   onBack: () => void;
   onSubmit: (values: GuestFormValues) => void;
+  /** Pre-filled values when returning from an error screen (no re-typing). */
+  initial?: Partial<GuestFormValues>;
 }) {
   const [step, setStep] = useState(1);
-  const [position, setPosition] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [phone, setPhone] = useState("");
+  const [position, setPosition] = useState(initial?.position ?? "");
+  const [fullName, setFullName] = useState(initial?.fullName ?? "");
+  const [companyName, setCompanyName] = useState(initial?.companyName ?? "");
+  const [phone, setPhone] = useState(initial?.phone ?? "");
   const [touched, setTouched] = useState(false);
 
   const positionOption = POSITION_OPTIONS.find((o) => o.key === position);

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlreadyRegistered } from "./components/AlreadyRegistered";
 import { GuestForm, type GuestFormValues } from "./components/GuestForm";
 import { Landing } from "./components/Landing";
@@ -7,20 +7,34 @@ import { ResultScreen } from "./components/ResultScreen";
 import { RoleSelect } from "./components/RoleSelect";
 import { StandForm, type StandFormValues } from "./components/StandForm";
 import { SuccessScreen } from "./components/SuccessScreen";
+import { ContactCard } from "./components/ContactCard";
 import { t, type Language } from "./i18n";
-import { checkRegistration, submitRegistration, type RegistrationType } from "./lib/api";
+import { ApiError, checkRegistration, pingApi, submitRegistration, type RegistrationType } from "./lib/api";
 import type { RegistrationDetails } from "./lib/registrationSummary";
 import { initTelegramWebApp, tg } from "./lib/telegram";
 
+interface PendingSubmit {
+  role: RegistrationType;
+  language: Language;
+  values: StandFormValues | GuestFormValues;
+}
+
 type Step =
   | { name: "loading" }
+  | { name: "offline"; language: Language }
   | { name: "alreadyRegistered"; language: Language; details: RegistrationDetails }
   | { name: "language" }
   | { name: "landing"; language: Language }
   | { name: "role"; language: Language }
-  | { name: "form"; role: RegistrationType; language: Language }
+  | {
+      name: "form";
+      role: RegistrationType;
+      language: Language;
+      initialStand?: Partial<StandFormValues>;
+      initialGuest?: Partial<GuestFormValues>;
+    }
   | { name: "success"; language: Language; details: RegistrationDetails }
-  | { name: "error"; message: string; language: Language };
+  | { name: "error"; message: string; friendly: string; language: Language; pending?: PendingSubmit };
 
 function languageFromUrl(): Language | null {
   const raw = new URLSearchParams(window.location.search).get("lang");
@@ -30,37 +44,60 @@ function languageFromUrl(): Language | null {
 export default function App() {
   const [step, setStep] = useState<Step>({ name: "loading" });
   const [submitting, setSubmitting] = useState(false);
+  const bootSeq = useRef(0);
+
+  const boot = useCallback(async () => {
+    const seq = ++bootSeq.current;
+    setStep({ name: "loading" });
+
+    // Preflight: if the API host is not reachable at all, tell the user
+    // immediately instead of walking them into a flow that cannot submit.
+    let apiUp = true;
+    try {
+      await pingApi();
+    } catch {
+      apiUp = false;
+    }
+    if (seq !== bootSeq.current) return;
+    if (!apiUp) {
+      setStep({ name: "offline", language: languageFromUrl() ?? "uz" });
+      return;
+    }
+
+    try {
+      const res = await checkRegistration();
+      if (seq !== bootSeq.current) return;
+      if (res.alreadyRegistered) {
+        setStep({
+          name: "alreadyRegistered",
+          language: (res.language as Language) ?? "uz",
+          details: {
+            type: res.type,
+            fullName: res.fullName,
+            position: res.position,
+            companyName: res.companyName,
+            companyYears: res.companyYears,
+            companyActivity: res.companyActivity,
+            spaceNeeded: res.spaceNeeded,
+            willAttend: res.willAttend,
+            phone: res.phone,
+          },
+        });
+      } else {
+        const language = languageFromUrl();
+        setStep(language ? { name: "landing", language } : { name: "language" });
+      }
+    } catch {
+      if (seq !== bootSeq.current) return;
+      const language = languageFromUrl();
+      setStep(language ? { name: "landing", language } : { name: "language" });
+    }
+  }, []);
 
   useEffect(() => {
     initTelegramWebApp();
-    checkRegistration()
-      .then((res) => {
-        if (res.alreadyRegistered) {
-          setStep({
-            name: "alreadyRegistered",
-            language: (res.language as Language) ?? "uz",
-            details: {
-              type: res.type,
-              fullName: res.fullName,
-              position: res.position,
-              companyName: res.companyName,
-              companyYears: res.companyYears,
-              companyActivity: res.companyActivity,
-              spaceNeeded: res.spaceNeeded,
-              willAttend: res.willAttend,
-              phone: res.phone,
-            },
-          });
-        } else {
-          const language = languageFromUrl();
-          setStep(language ? { name: "landing", language } : { name: "language" });
-        }
-      })
-      .catch(() => {
-        const language = languageFromUrl();
-        setStep(language ? { name: "landing", language } : { name: "language" });
-      });
-  }, []);
+    void boot();
+  }, [boot]);
 
   async function handleSubmit(
     role: RegistrationType,
@@ -101,7 +138,14 @@ export default function App() {
       tg.HapticFeedback?.notificationOccurred("success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
-      setStep({ name: "error", message, language });
+      const friendly =
+        err instanceof ApiError && err.code === "NETWORK"
+          ? t(language, "errorNetwork")
+          : err instanceof ApiError && err.code === "ALREADY_REGISTERED"
+            ? t(language, "errorAlreadyRegistered")
+            : t(language, "errorGeneric");
+      setStep({ name: "error", message, friendly, language, pending: { role, language, values } });
+      tg.HapticFeedback?.notificationOccurred("error");
     } finally {
       setSubmitting(false);
     }
@@ -114,6 +158,22 @@ export default function App() {
           <img src="/logo.png" alt="FOODERA EXPO 2026" className="splash__logo" />
           <div className="splash__spinner" />
         </div>
+      );
+
+    case "offline":
+      return (
+        <ResultScreen
+          icon="!"
+          variant="warn"
+          title={t(step.language, "offlineTitle")}
+          text={t(step.language, "offlineText")}
+          footer={<ContactCard language={step.language} />}
+          action={
+            <button type="button" className="button" onClick={() => void boot()}>
+              {t(step.language, "retry")}
+            </button>
+          }
+        />
       );
 
     case "alreadyRegistered":
@@ -140,6 +200,7 @@ export default function App() {
           <StandForm
             language={step.language}
             submitting={submitting}
+            initial={step.initialStand}
             onBack={() => setStep({ name: "role", language: step.language })}
             onSubmit={(values) => handleSubmit("STAND", step.language, values)}
           />
@@ -149,6 +210,7 @@ export default function App() {
         <GuestForm
           language={step.language}
           submitting={submitting}
+          initial={step.initialGuest}
           onBack={() => setStep({ name: "role", language: step.language })}
           onSubmit={(values) => handleSubmit("GUEST", step.language, values)}
         />
@@ -162,12 +224,42 @@ export default function App() {
         <ResultScreen
           icon="!"
           variant="warn"
-          title={t(step.language, "errorGeneric")}
-          text={step.message === "Already registered" ? t(step.language, "errorAlreadyRegistered") : ""}
+          title={step.friendly}
+          text={step.pending ? t(step.language, "errorGeneric") : ""}
+          detail={`${t(step.language, "errorDetailLabel")}: ${step.message}`}
           action={
-            <button type="button" className="button" onClick={() => setStep({ name: "role", language: step.language })}>
-              {t(step.language, "back")}
-            </button>
+            <>
+              {step.pending ? (
+                <button
+                  type="button"
+                  className="button"
+                  disabled={submitting}
+                  onClick={() => void handleSubmit(step.pending!.role, step.pending!.language, step.pending!.values)}
+                >
+                  {submitting ? t(step.language, "loading") : t(step.language, "retry")}
+                </button>
+              ) : null}
+              {step.pending ? (
+                <button
+                  type="button"
+                  className="button button--secondary"
+                  onClick={() =>
+                    setStep({
+                      name: "form",
+                      role: step.pending!.role,
+                      language: step.language,
+                      initialStand: step.pending!.role === "STAND" ? (step.pending!.values as StandFormValues) : undefined,
+                      initialGuest: step.pending!.role === "GUEST" ? (step.pending!.values as GuestFormValues) : undefined,
+                    })
+                  }
+                >
+                  {t(step.language, "editData")}
+                </button>
+              ) : null}
+              <button type="button" className="button button--secondary" onClick={() => setStep({ name: "role", language: step.language })}>
+                {t(step.language, "back")}
+              </button>
+            </>
           }
         />
       );

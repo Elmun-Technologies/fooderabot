@@ -1,5 +1,6 @@
 import { Prisma, RegistrationStatus } from "@prisma/client";
 import { notifyRegistrationConfirmed } from "../bot/bot";
+import { notifyLeadsGroup } from "../bot/leadsGroup";
 import { prisma } from "../db";
 import { createLeadForRegistration } from "./amocrm";
 import type { SubmitRegistrationBody } from "../types";
@@ -103,6 +104,10 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
 
   await notifyRegistrationConfirmed(tgUser.id, body.type, body.language, body.willAttend).catch((err) => {
     console.error("Failed to send Telegram confirmation", err);
+  });
+
+  await notifyLeadsGroup(registration, user).catch((err) => {
+    console.error("Failed to notify leads group", err);
   });
 
   return registration;

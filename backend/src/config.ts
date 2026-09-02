@@ -23,6 +23,10 @@ export const config = {
   port: Number(process.env.PORT ?? 3000),
   corsOrigin: (process.env.CORS_ORIGIN ?? "").split(",").map((s) => s.trim()).filter(Boolean),
 
+  // Internal Telegram group that receives a full copy of every lead (with
+  // UTM) and answers /stats and /leads for the team. Leave unset to disable.
+  leadsGroupChatId: process.env.LEADS_GROUP_CHAT_ID ?? "-1004298085307",
+
   amocrm: {
     baseUrl: process.env.AMOCRM_BASE_URL ?? "",
     accessToken: process.env.AMOCRM_ACCESS_TOKEN ?? "",

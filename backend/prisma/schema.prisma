@@ -170,6 +170,9 @@ model Broadcast {
   textUz      String
   textRu      String
   textEn      String
+  /// Telegram file_id for an attached image, optional.
+  /// Uploaded by the admin via the composer, served to all recipients.
+  imageFileId String?
   /// DRAFT | SCHEDULED | RUNNING | DONE | FAILED
   status      String                @default("DRAFT")
   scheduledAt DateTime?

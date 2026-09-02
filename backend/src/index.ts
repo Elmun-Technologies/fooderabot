@@ -1,5 +1,6 @@
 import { bot } from "./bot/bot";
 import { startFollowUpScheduler } from "./bot/followups";
+import { startBroadcastScheduler } from "./services/broadcast";
 import { createServer } from "./api/server";
 import { config } from "./config";
 import { seedDefaultSequences } from "./services/seed";
@@ -25,6 +26,9 @@ async function main() {
 
     startFollowUpScheduler();
     console.log("Follow-up scheduler started");
+
+    startBroadcastScheduler();
+    console.log("Broadcast scheduler started");
   }
 
   // With SKIP_BOT the bot was never launched, so bot.stop() would throw.

@@ -66,6 +66,16 @@ model Registration {
   spaceNeeded     String? // STAND only, square meters
   willAttend      Boolean? // GUEST only
 
+  // Stage-2 additions — never drop, only widen.
+  // `city` is captured at submission time (Stand step 2).
+  city        String?
+  // `leadScore` is a 0-100 number produced by the rule-based scoring engine
+  // (services/leadScoring.ts) right after the row is saved.
+  leadScore   Int      @default(0)
+  // `leadTier` is the categorical bucket ("HOT" | "WARM" | "COLD") so the
+  // admin can filter fast without recomputing the score.
+  leadTier    String?
+
   status       RegistrationStatus @default(PENDING)
   amoLeadId    Int?
   amoContactId Int?

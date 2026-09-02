@@ -30,6 +30,7 @@ export function validateSubmitBody(body: unknown): string | null {
     if (!isNonEmptyString(b.companyYears)) return "Company years is required for stand registrations";
     if (!isNonEmptyString(b.companyActivity)) return "Company activity is required for stand registrations";
     if (!isNonEmptyString(b.spaceNeeded)) return "Booth type is required for stand registrations";
+    if (!isNonEmptyString(b.city)) return "City is required for stand registrations";
   }
 
   if (b.type === "GUEST") {
@@ -54,5 +55,6 @@ export function toSubmitBody(body: unknown): SubmitRegistrationBody {
     companyActivity: b.companyActivity ? String(b.companyActivity).trim() : undefined,
     spaceNeeded: b.spaceNeeded ? String(b.spaceNeeded).trim() : undefined,
     willAttend: typeof b.willAttend === "boolean" ? b.willAttend : undefined,
+    city: typeof b.city === "string" && b.city.trim() ? b.city.trim() : undefined,
   };
 }

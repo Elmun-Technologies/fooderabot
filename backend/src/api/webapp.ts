@@ -1,10 +1,32 @@
 import { Router } from "express";
 import { config } from "../config";
+import { prisma } from "../db";
+import { recordEvent, isValidEventName } from "../services/analytics";
 import { validateInitData } from "../lib/validateInitData";
 import { AlreadyRegisteredError, checkRegistration, submitRegistration } from "../services/registration";
 import { toSubmitBody, validateSubmitBody } from "./validate";
 
 export const webappRouter = Router();
+
+/** Resolve the Telegram user (if any) from the initData header, then look
+ *  up the matching User row so we can attach UTM context to the event. */
+async function getTrackedUser(req: import("express").Request): Promise<{ userId?: number; utm?: { source?: string; medium?: string; campaign?: string; content?: string; term?: string } }> {
+  const initData = req.header("x-telegram-init-data") ?? "";
+  const validated = validateInitData(initData, config.botToken);
+  if (!validated) return {};
+  const dbUser = await prisma.user.findUnique({ where: { telegramId: BigInt(validated.user.id) } });
+  if (!dbUser) return {};
+  return {
+    userId: dbUser.id,
+    utm: {
+      source: dbUser.utmSource ?? undefined,
+      medium: dbUser.utmMedium ?? undefined,
+      campaign: dbUser.utmCampaign ?? undefined,
+      content: dbUser.utmContent ?? undefined,
+      term: dbUser.utmTerm ?? undefined,
+    },
+  };
+}
 
 function getValidatedUser(req: import("express").Request) {
   const initData = req.header("x-telegram-init-data") ?? "";
@@ -42,3 +64,48 @@ webappRouter.post("/submit", async (req, res) => {
     res.status(500).json({ error: "Internal error" });
   }
 });
+
+/**
+ * Stage 4 analytics endpoint.
+ * Accepts a single event with the shape defined in services/analytics.ts.
+ * The client should batch whenever possible (see webapp/src/lib/analytics.ts).
+ *
+ * Auth is optional: we accept initData when present (then we attach the
+ * matching userId + UTM) and otherwise fall back to a client-supplied
+ * `anonymousId` (set by the webapp in localStorage). Either side MUST be
+ * provided — see isValidEventName + the missing_id check.
+ */
+webappRouter.post("/track", async (req, res) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const { tracked, userId, utm } = await getTrackedUser(req);
+  void tracked; // not used outside of the request-scoped lookup
+
+  const anonymousId = typeof body.anonymousId === "string" ? body.anonymousId.slice(0, 64) : undefined;
+  const screen = typeof body.screen === "string" ? body.screen.slice(0, 64) : undefined;
+  const name = body.name;
+  const props = body.props;
+
+  try {
+    const result = await recordEvent({ name, screen, props, anonymousId, userId, utm });
+    if (!result.recorded) {
+      // Validation problems are client bugs — answer 400 so the client
+      // can decide to drop or log. We never crash on bad input.
+      return res.status(400).json({ ok: false, reason: result.reason });
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    // Server-side DB error: 202 so the client doesn't retry forever.
+    console.error("Failed to record event", err);
+    res.status(202).json({ ok: false, reason: "server_error" });
+  }
+});
+
+/** Health check used by the in-app analytics library to know the track
+ *  endpoint is reachable. Always 200 so a network blip doesn't stop the
+ *  app from working. */
+webappRouter.get("/track", (_req, res) => {
+  res.json({ ok: true });
+});
+
+// Re-export so other modules (e.g. tests) can reuse the helper.
+export { isValidEventName };

@@ -5,7 +5,7 @@ import { Screen } from "./Screen";
 // Shown before any language is picked, so every label is trilingual.
 export function RoleSelect({ onSelect }: { onSelect: (role: RegistrationType) => void }) {
   return (
-    <Screen title="Foodera Expo">
+    <Screen title="Qanday qatnashmoqchisiz? / Как хотите участвовать? / How will you join?">
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <OptionCard
           title="🏢 Stend bilan qatnashaman / Со стендом / With a stand"

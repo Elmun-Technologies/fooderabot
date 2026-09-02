@@ -7,7 +7,10 @@
 # runtime stage reuses the exact node_modules (and engines) built in the build
 # stage instead of reinstalling, so nothing can drift between the two.
 FROM node:20-slim AS build
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# python3/build-essential: argon2's native binding falls back to compiling
+# from source (node-gyp) when no prebuilt binary matches this platform, and
+# node:*-slim ships neither.
+RUN apt-get update -y && apt-get install -y openssl python3 build-essential && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install

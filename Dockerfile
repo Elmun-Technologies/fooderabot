@@ -23,7 +23,10 @@ RUN npm run build
 # stages, since `prisma generate` in the build stage needs it to pick the right
 # engine binary just as much as `prisma migrate deploy` does at runtime.
 FROM node:20-slim AS backend-build
-RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
+# python3/build-essential: argon2's native binding falls back to compiling
+# from source (node-gyp) when no prebuilt binary matches this platform, and
+# node:*-slim ships neither.
+RUN apt-get update -y && apt-get install -y openssl python3 build-essential && rm -rf /var/lib/apt/lists/*
 WORKDIR /src/backend
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm install

@@ -725,8 +725,8 @@
 /* ---------- Broadcasts (Stage 7) ---------- */
 
 .adm__composer {
-  background: var(--paper-1);
-  border: 1px solid var(--border);
+  background: var(--paper);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 24px;
   display: flex;
@@ -761,7 +761,7 @@
 .adm__chip {
   padding: 8px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   background: var(--paper-2);
   font-size: 13px;
   color: var(--ink);
@@ -774,23 +774,23 @@
 
 .adm__chip:hover {
   border-color: var(--gold);
-  background: var(--paper-1);
+  background: var(--paper);
 }
 
 .adm__chip--active {
   background: var(--night);
-  color: var(--paper-1);
+  color: var(--ink-on-dark);
   border-color: var(--night);
 }
 
 .adm__chip--active:hover {
   background: var(--night);
-  color: var(--paper-1);
+  color: var(--ink-on-dark);
 }
 
 .adm__preview {
   background: var(--paper-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 16px;
   display: flex;
@@ -808,8 +808,8 @@
 }
 
 .adm__preview-bubble {
-  background: var(--paper-1);
-  border: 1px solid var(--border);
+  background: var(--paper);
+  border: 1px solid var(--line);
   border-radius: 14px 14px 14px 2px;
   padding: 12px 14px;
   font-size: 14px;
@@ -830,7 +830,7 @@
   height: 96px;
   object-fit: cover;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
 }
 
 .adm__image-placeholder {
@@ -840,7 +840,7 @@
   align-items: center;
   justify-content: center;
   background: var(--paper-2);
-  border: 1px dashed var(--border);
+  border: 1px dashed var(--line);
   border-radius: var(--radius-sm);
   font-size: 32px;
   color: var(--ink-muted);
@@ -863,8 +863,8 @@
 /* ---------- Workflows (Stage 7) ---------- */
 
 .adm__workflow {
-  background: var(--paper-1);
-  border: 1px solid var(--border);
+  background: var(--paper);
+  border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   padding: 24px;
   margin-bottom: 20px;
@@ -886,7 +886,7 @@
 }
 
 .adm__workflow-section {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--line);
   padding-top: 16px;
   margin-top: 16px;
 }
@@ -905,7 +905,7 @@
 
 .adm__action {
   background: var(--paper-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-md);
   padding: 12px;
   margin-bottom: 12px;

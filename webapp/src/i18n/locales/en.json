@@ -272,6 +272,8 @@
   "adminStepSave": "Save",
   "adminStepSaved": "Saved ✓",
   "adminStepSaveError": "Save error",
+  "adminStepAdd": "Add step",
+  "adminStepRemove": "Remove",
   "adminAuditTitle": "Audit log",
   "adminAuditEmpty": "No audit entries yet",
   "adminCommonLoading": "Loading...",

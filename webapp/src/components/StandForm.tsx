@@ -8,6 +8,7 @@ import {
   YEARS_OPTIONS,
   optionLabel,
 } from "../lib/event";
+import { haptics } from "../lib/haptics";
 import { isValidPhone } from "../lib/telegram";
 import { Chips } from "./Chips";
 import { PhoneField } from "./PhoneField";
@@ -79,6 +80,11 @@ export function StandForm({
   const [touched, setTouched] = useState(false);
 
   const set = (key: keyof StandFormValues) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }));
+  /** Wrap a chip's onChange so the user gets a soft haptic on every pick. */
+  const pick = (key: keyof StandFormValues) => (v: string) => {
+    haptics.select();
+    set(key)(v);
+  };
 
   const category = CATEGORY_OPTIONS.find((o) => o.key === values.companyActivity);
   const position = POSITION_OPTIONS.find((o) => o.key === values.position);
@@ -103,18 +109,27 @@ export function StandForm({
   function goNext() {
     setTouched(true);
     if (step === 1 && step1Valid) {
+      haptics.confirm();
       setTouched(false);
       setStep(2);
     } else if (step === 2 && step2Valid) {
+      haptics.confirm();
       setTouched(false);
       setStep(3);
     } else if (step === 3 && step3Valid) {
+      haptics.confirm();
       setTouched(false);
       setStep(4);
+    } else {
+      haptics.error();
     }
   }
 
-  const back = () => (step === 1 ? onBack() : setStep(step - 1));
+  const back = () => {
+    haptics.tap();
+    if (step === 1) onBack();
+    else setStep(step - 1);
+  };
 
   const payload = (): StandFormValues => ({
     ...values,
@@ -133,7 +148,7 @@ export function StandForm({
           <Chips
             options={CATEGORY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
             value={values.companyActivity}
-            onChange={set("companyActivity")}
+            onChange={pick("companyActivity")}
             error={categoryError}
           />
         </div>
@@ -146,7 +161,7 @@ export function StandForm({
           <Chips
             options={CITY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
             value={values.city}
-            onChange={set("city")}
+            onChange={pick("city")}
             error={cityError}
           />
         </div>
@@ -166,7 +181,7 @@ export function StandForm({
             <Chips
               options={POSITION_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.position}
-              onChange={set("position")}
+              onChange={pick("position")}
               error={positionError}
             />
           </div>
@@ -188,7 +203,7 @@ export function StandForm({
             <Chips
               options={STAND_TYPE_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.spaceNeeded}
-              onChange={set("spaceNeeded")}
+              onChange={pick("spaceNeeded")}
               error={standTypeError}
               columns={1}
             />
@@ -198,7 +213,7 @@ export function StandForm({
             <Chips
               options={YEARS_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.companyYears}
-              onChange={set("companyYears")}
+              onChange={pick("companyYears")}
               error={yearsError}
             />
           </div>
@@ -219,7 +234,12 @@ export function StandForm({
               disabled={submitting}
               onClick={() => {
                 setTouched(true);
-                if (step4Valid) onSubmit(payload());
+                if (step4Valid) {
+                  haptics.confirm();
+                  onSubmit(payload());
+                } else {
+                  haptics.error();
+                }
               }}
             >
               {submitting ? t(language, "loading") : t(language, "submit")}

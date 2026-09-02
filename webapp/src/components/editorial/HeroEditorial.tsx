@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { t, type Language } from "../../i18n";
+import { haptics } from "../../lib/haptics";
 import { Reveal } from "./Reveal";
 
 const EVENT_START_MS = new Date("2026-10-20T09:00:00+05:00").getTime();
@@ -81,10 +82,24 @@ export function HeroEditorial({ language, onPrimary, onSecondary }: HeroEditoria
 
         <Reveal delay={4}>
           <div className="edl-hero__ctas">
-            <button type="button" className="edl-btn edl-btn--primary edl-btn--full" onClick={onPrimary}>
+            <button
+              type="button"
+              className="edl-btn edl-btn--primary edl-btn--full"
+              onClick={() => {
+                haptics.confirm();
+                onPrimary();
+              }}
+            >
               {t(language, "landingCtaPrimary")}
             </button>
-            <button type="button" className="edl-btn edl-btn--secondary edl-btn--full" onClick={onSecondary}>
+            <button
+              type="button"
+              className="edl-btn edl-btn--secondary edl-btn--full"
+              onClick={() => {
+                haptics.tap();
+                onSecondary();
+              }}
+            >
               {t(language, "landingCtaSecondary")}
             </button>
             <p className="edl-hero__trust">{t(language, "landingTrust")}</p>

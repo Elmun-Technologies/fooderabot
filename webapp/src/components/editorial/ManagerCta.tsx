@@ -1,4 +1,5 @@
 import { t, type Language } from "../../i18n";
+import { haptics } from "../../lib/haptics";
 import { Reveal } from "./Reveal";
 
 interface ManagerCtaProps {
@@ -21,7 +22,14 @@ export function ManagerCta({ language, onContact }: ManagerCtaProps) {
               <h2 className="edl-manager__title">{t(language, "managerCtaTitle")}</h2>
               <p className="edl-manager__text">{t(language, "managerCtaText")}</p>
             </div>
-            <button type="button" className="edl-manager__btn" onClick={onContact}>
+            <button
+              type="button"
+              className="edl-manager__btn"
+              onClick={() => {
+                haptics.confirm();
+                onContact();
+              }}
+            >
               {t(language, "managerCtaButton")}
             </button>
           </div>

@@ -1,4 +1,5 @@
 import { t, type Language, type TranslationKey } from "../../i18n";
+import { haptics } from "../../lib/haptics";
 import { Reveal } from "./Reveal";
 
 interface PackagesProps {
@@ -91,7 +92,14 @@ export function Packages({ language, onSelect }: PackagesProps) {
                   ))}
                 </ul>
                 <p className="edl-package__price">{t(language, "packagePriceOnRequest")}</p>
-                <button type="button" className="edl-package__cta" onClick={onSelect}>
+                <button
+                  type="button"
+                  className="edl-package__cta"
+                  onClick={() => {
+                    haptics.confirm();
+                    onSelect();
+                  }}
+                >
                   {t(language, "packagesCta")}
                 </button>
               </article>

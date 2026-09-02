@@ -97,9 +97,7 @@ export default function App() {
     case "loading":
       return (
         <div className="splash">
-          <div className="splash__mark">
-            FOODERA <span>EXPO 2026</span>
-          </div>
+          <img className="splash__logo" src="/logo.png" alt="Foodera Expo" />
           <div className="splash__spinner" />
         </div>
       );

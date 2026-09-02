@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { t, type Language } from "../i18n";
+import { POSITION_OPTIONS, optionLabel } from "../lib/event";
+import { isValidPhone } from "../lib/telegram";
+import { Chips } from "./Chips";
+import { PhoneField } from "./PhoneField";
 import { Screen } from "./Screen";
 import { TextField } from "./TextField";
 
@@ -8,7 +12,10 @@ export interface GuestFormValues {
   fullName: string;
   companyName?: string;
   willAttend: boolean;
+  phone?: string;
 }
+
+const TOTAL_STEPS = 2;
 
 export function GuestForm({
   language,
@@ -21,20 +28,23 @@ export function GuestForm({
   onBack: () => void;
   onSubmit: (values: GuestFormValues) => void;
 }) {
-  const [step, setStep] = useState<"details" | "confirm">("details");
+  const [step, setStep] = useState(1);
   const [position, setPosition] = useState("");
   const [fullName, setFullName] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [phone, setPhone] = useState("");
   const [touched, setTouched] = useState(false);
 
-  const positionError = touched && !position.trim() ? t(language, "required") : undefined;
+  const positionOption = POSITION_OPTIONS.find((o) => o.key === position);
   const fullNameError = touched && !fullName.trim() ? t(language, "required") : undefined;
-  const detailsValid = position.trim().length > 0 && fullName.trim().length > 0;
+  const positionError = touched && !positionOption ? t(language, "selectRequired") : undefined;
+  const detailsValid = Boolean(positionOption) && fullName.trim().length > 0;
+  const phoneError = touched && phone.trim() && !isValidPhone(phone) ? t(language, "phoneInvalid") : undefined;
 
-  if (step === "confirm") {
+  if (step === 2) {
     return (
-      <Screen step={3} totalSteps={4} onBack={() => setStep("details")}>
-        <div className="result" style={{ paddingBottom: 0 }}>
+      <Screen step={2} totalSteps={TOTAL_STEPS} onBack={() => setStep(1)}>
+        <div className="result result--inline">
           <div className="result__icon result__icon--gold">🎫</div>
           <h1 className="result__title">{t(language, "willAttendTitle")}</h1>
           <p className="result__text">{t(language, "willAttendQuestion")}</p>
@@ -44,15 +54,31 @@ export function GuestForm({
             type="button"
             className="button"
             disabled={submitting}
-            onClick={() => onSubmit({ position, fullName, companyName: companyName.trim() || undefined, willAttend: true })}
+            onClick={() =>
+              onSubmit({
+                position: positionOption ? optionLabel(language, positionOption) : "",
+                fullName,
+                companyName: companyName.trim() || undefined,
+                willAttend: true,
+                phone: isValidPhone(phone) ? phone.trim() : undefined,
+              })
+            }
           >
-            {t(language, "willAttendYes")}
+            {submitting ? t(language, "loading") : t(language, "willAttendYes")}
           </button>
           <button
             type="button"
             className="button button--secondary"
             disabled={submitting}
-            onClick={() => onSubmit({ position, fullName, companyName: companyName.trim() || undefined, willAttend: false })}
+            onClick={() =>
+              onSubmit({
+                position: positionOption ? optionLabel(language, positionOption) : "",
+                fullName,
+                companyName: companyName.trim() || undefined,
+                willAttend: false,
+                phone: isValidPhone(phone) ? phone.trim() : undefined,
+              })
+            }
           >
             {t(language, "willAttendNo")}
           </button>
@@ -62,11 +88,31 @@ export function GuestForm({
   }
 
   return (
-    <Screen step={3} totalSteps={4} onBack={onBack} heading={t(language, "formTitleGuest")}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <TextField label={t(language, "position")} placeholder={t(language, "positionPlaceholder")} value={position} onChange={setPosition} error={positionError} />
-        <TextField label={t(language, "fullName")} placeholder={t(language, "fullNamePlaceholder")} value={fullName} onChange={setFullName} error={fullNameError} />
-        <TextField label={t(language, "companyNameOptional")} placeholder={t(language, "companyNamePlaceholder")} value={companyName} onChange={setCompanyName} />
+    <Screen step={1} totalSteps={TOTAL_STEPS} onBack={onBack} heading={t(language, "formTitleGuest")}>
+      <div className="form-step">
+        <TextField
+          label={t(language, "fullName")}
+          placeholder={t(language, "fullNamePlaceholder")}
+          value={fullName}
+          onChange={setFullName}
+          error={fullNameError}
+        />
+        <div className="field">
+          <span className="field__label">{t(language, "positionTitle")}</span>
+          <Chips
+            options={POSITION_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
+            value={position}
+            onChange={setPosition}
+            error={positionError}
+          />
+        </div>
+        <TextField
+          label={t(language, "companyNameOptional")}
+          placeholder={t(language, "companyNamePlaceholder")}
+          value={companyName}
+          onChange={setCompanyName}
+        />
+        <PhoneField language={language} value={phone} error={phoneError} onChange={setPhone} />
       </div>
 
       <div className="actions">
@@ -75,7 +121,7 @@ export function GuestForm({
           className="button"
           onClick={() => {
             setTouched(true);
-            if (detailsValid) setStep("confirm");
+            if (detailsValid && !(phone.trim() && !isValidPhone(phone))) setStep(2);
           }}
         >
           {t(language, "next")}

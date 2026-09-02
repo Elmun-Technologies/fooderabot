@@ -6,9 +6,12 @@ export interface SubmitRegistrationBody {
   language: Language;
   position: string;
   fullName: string;
+  /** Required for STAND, optional for GUEST. E.164-ish free form, 9–15 digits. */
+  phone?: string;
   companyName?: string;
   companyYears?: string;
   companyActivity?: string;
+  /** Booth type label, e.g. "Premium stend · 18 m²" (legacy rows: plain number). */
   spaceNeeded?: string;
   willAttend?: boolean;
 }

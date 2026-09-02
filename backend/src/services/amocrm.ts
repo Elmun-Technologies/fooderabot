@@ -35,10 +35,12 @@ function buildNote(r: RegistrationForCrm): string {
     `Til: ${r.language}`,
     `Ism Familiya: ${r.fullName}`,
     `Lavozim: ${r.position}`,
+    r.phone ? `Telefon: ${r.phone}` : null,
     r.companyName ? `Kompaniya nomi: ${r.companyName}` : null,
     r.companyYears ? `Faoliyat yuritish muddati: ${r.companyYears}` : null,
     r.companyActivity ? `Faoliyat turi: ${r.companyActivity}` : null,
-    r.spaceNeeded ? `Kerakli joy: ${r.spaceNeeded} m²` : null,
+    // New values are booth-type labels ("Premium stend · 18 m²"); legacy rows are plain numbers.
+    r.spaceNeeded ? `Stend turi: ${/m²|m2/i.test(r.spaceNeeded) ? r.spaceNeeded : `${r.spaceNeeded} m²`}` : null,
     r.willAttend !== undefined ? `Tadbirga kelishni tasdiqladi: ${r.willAttend ? "Ha" : "Yo'q"}` : null,
     r.telegramUsername ? `Telegram: @${r.telegramUsername}` : `Telegram ID: ${r.telegramId}`,
     r.utmSource ? `UTM source: ${r.utmSource}` : null,
@@ -75,6 +77,7 @@ export async function createLeadForRegistration(
 
   const leadCustomFields = [
     field(f.position, r.position),
+    field(f.phone, r.phone),
     field(f.companyName, r.companyName),
     field(f.companyYears, r.companyYears),
     field(f.companyActivity, r.companyActivity),
@@ -89,9 +92,13 @@ export async function createLeadForRegistration(
     field(f.utmTerm, r.utmTerm),
   ].filter((v): v is CustomFieldValue => v !== null);
 
-  const contactCustomFields = [field(f.telegramUsername, r.telegramUsername)].filter(
-    (v): v is CustomFieldValue => v !== null,
-  );
+  const contactCustomFields: (CustomFieldValue | { field_code: string; values: { value: string; enum_code?: string }[] })[] = [
+    // Phone goes to amoCRM's built-in PHONE field so it is callable from the lead card.
+    ...(r.phone
+      ? [{ field_code: "PHONE", values: [{ value: r.phone, enum_code: "WORK" }] }]
+      : []),
+    field(f.telegramUsername, r.telegramUsername),
+  ].filter((v): v is NonNullable<typeof v> => v !== null);
 
   const statusId = r.type === "STAND" ? config.amocrm.statusIdStand : config.amocrm.statusIdGuest;
 

@@ -12,9 +12,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     },
   });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    throw new Error(data?.error ?? `Request failed with status ${res.status}`);
+  // A JSON body is expected from every endpoint. If the URL was accidentally
+  // served by a static host (SPA fallback returns index.html with 200), we
+  // must fail loudly instead of silently "succeeding" and losing the lead.
+  const data = await res.json().catch(() => null);
+  if (!res.ok || data === null || typeof data !== "object") {
+    throw new Error((data as { error?: string } | null)?.error ?? `Request failed with status ${res.status}`);
   }
   return data as T;
 }
@@ -30,6 +33,7 @@ export interface CheckResponse {
   companyActivity?: string;
   spaceNeeded?: string;
   willAttend?: boolean;
+  phone?: string;
 }
 
 export function checkRegistration() {
@@ -37,18 +41,19 @@ export function checkRegistration() {
 }
 
 export type RegistrationType = "STAND" | "GUEST";
-export type Language = "uz" | "ru" | "en";
 
 export interface SubmitPayload {
   type: RegistrationType;
-  language: Language;
+  language: "uz" | "ru" | "en";
   position: string;
   fullName: string;
   companyName?: string;
   companyYears?: string;
   companyActivity?: string;
+  /** Booth type label, e.g. "Premium stend · 18 m²" (kept in the spaceNeeded column). */
   spaceNeeded?: string;
   willAttend?: boolean;
+  phone?: string;
 }
 
 export function submitRegistration(payload: SubmitPayload) {

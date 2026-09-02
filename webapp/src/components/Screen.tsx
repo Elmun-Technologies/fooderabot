@@ -1,4 +1,5 @@
 import type { PropsWithChildren, ReactNode } from "react";
+import { tg } from "../lib/telegram";
 
 interface ScreenProps {
   step?: number;
@@ -45,7 +46,13 @@ export function Screen({
 
       {showBrand ? (
         <div className="brand">
-          <strong>FOODERA</strong> EXPO 2026
+          <img
+            className="brand__logo"
+            src={tg.colorScheme === "dark" ? "assets/foodera-logo-light.svg" : "assets/foodera-logo.svg"}
+            alt="FOODERA EXPO 2026"
+            width={140}
+            height={32}
+          />
         </div>
       ) : null}
 

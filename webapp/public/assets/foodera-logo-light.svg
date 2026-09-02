@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="560" height="128" viewBox="0 0 560 128" role="img" aria-label="FOODERA EXPO 2026">
+  <defs>
+    <linearGradient id="fxg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2f6fe0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="64" r="46" fill="url(#fxg)"/>
+  <circle cx="64" cy="64" r="33" fill="#ffffff" opacity="0.14"/>
+  <circle cx="64" cy="64" r="22" fill="none" stroke="#ffffff" stroke-width="3.5" opacity="0.95"/>
+  <circle cx="64" cy="64" r="7" fill="#ffffff"/>
+  <text x="130" y="72" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="44" font-weight="800" letter-spacing="1.5" fill="#ffffff">FOODERA</text>
+  <text x="130" y="104" font-family="-apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="6" fill="#e7cf9e">EXPO 2026</text>
+</svg>

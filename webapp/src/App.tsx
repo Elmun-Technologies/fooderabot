@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlreadyRegistered } from "./components/AlreadyRegistered";
 import { GuestForm, type GuestFormValues } from "./components/GuestForm";
+import { Landing } from "./components/Landing";
 import { LanguageSelect } from "./components/LanguageSelect";
 import { ResultScreen } from "./components/ResultScreen";
 import { RoleSelect } from "./components/RoleSelect";
@@ -15,10 +16,16 @@ type Step =
   | { name: "loading" }
   | { name: "alreadyRegistered"; language: Language; details: RegistrationDetails }
   | { name: "language" }
+  | { name: "landing"; language: Language }
   | { name: "role"; language: Language }
   | { name: "form"; role: RegistrationType; language: Language }
   | { name: "success"; language: Language; details: RegistrationDetails }
   | { name: "error"; message: string; language: Language };
+
+function languageFromUrl(): Language | null {
+  const raw = new URLSearchParams(window.location.search).get("lang");
+  return raw === "uz" || raw === "ru" || raw === "en" ? raw : null;
+}
 
 export default function App() {
   const [step, setStep] = useState<Step>({ name: "loading" });
@@ -45,10 +52,14 @@ export default function App() {
             },
           });
         } else {
-          setStep({ name: "language" });
+          const language = languageFromUrl();
+          setStep(language ? { name: "landing", language } : { name: "language" });
         }
       })
-      .catch(() => setStep({ name: "language" }));
+      .catch(() => {
+        const language = languageFromUrl();
+        setStep(language ? { name: "landing", language } : { name: "language" });
+      });
   }, []);
 
   async function handleSubmit(
@@ -109,13 +120,16 @@ export default function App() {
       return <AlreadyRegistered language={step.language} details={step.details} />;
 
     case "language":
-      return <LanguageSelect onSelect={(language) => setStep({ name: "role", language })} />;
+      return <LanguageSelect onSelect={(language) => setStep({ name: "landing", language })} />;
+
+    case "landing":
+      return <Landing language={step.language} onContinue={() => setStep({ name: "role", language: step.language })} />;
 
     case "role":
       return (
         <RoleSelect
           language={step.language}
-          onBack={() => setStep({ name: "language" })}
+          onBack={() => setStep({ name: "landing", language: step.language })}
           onSelect={(role) => setStep({ name: "form", role, language: step.language })}
         />
       );

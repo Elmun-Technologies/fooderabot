@@ -1,11 +1,16 @@
 import type { Language, RegistrationType } from "../types";
 
 export const botText = {
-  welcomeMultilang: [
-    "🇺🇿 Assalomu alaykum! FOODERA EXPO 2026 — Markaziy Osiyodagi yirik oziq-ovqat va ichimlik ko'rgazmasi.\n\n📅 20–22 oktabr, 2026\n📍 SOF EXPO, Samarqand\n👥 125M+ iste'molchi bozori, 6 mamlakat",
-    "🇷🇺 Здравствуйте! FOODERA EXPO 2026 — крупнейшая продовольственная выставка Центральной Азии.\n\n📅 20–22 октября 2026\n📍 SOF EXPO, Самарканд\n👥 Рынок с 125M+ потребителей, 6 стран",
-    "🇬🇧 Hello! FOODERA EXPO 2026 — Central Asia's major food & beverage expo.\n\n📅 October 20–22, 2026\n📍 SOF EXPO, Samarkand\n👥 A market of 125M+ consumers, 6 countries",
-  ].join("\n\n"),
+  chooseLanguage: "🇺🇿 Tilni tanlang / 🇷🇺 Выберите язык / 🇬🇧 Choose your language",
+
+  warmup(language: Language): string {
+    const msg: Record<Language, string> = {
+      uz: "FOODERA EXPO 2026 — Markaziy Osiyodagi eng yirik oziq-ovqat va ichimlik ko'rgazmasi.\n\n📅 20–22 oktabr, 2026\n📍 SOF EXPO, Samarqand\n👥 125M+ iste'molchi bozori, 6 mamlakat, $58–78 mlrd bozor hajmi\n\nBu yerda yetkazib beruvchilar, ishlab chiqaruvchilar va xaridorlar bir joyda uchrashadi. Ro'yxatdan o'tish atigi 30 sekunda — hoziroq boshlaymizmi?",
+      ru: "FOODERA EXPO 2026 — крупнейшая продовольственная выставка Центральной Азии.\n\n📅 20–22 октября 2026\n📍 SOF EXPO, Самарканд\n👥 Рынок с 125M+ потребителей, 6 стран, объём $58–78 млрд\n\nЗдесь встречаются поставщики, производители и байеры. Регистрация — всего 30 секунд, начнём?",
+      en: "FOODERA EXPO 2026 — Central Asia's major food & beverage expo.\n\n📅 October 20–22, 2026\n📍 SOF EXPO, Samarkand\n👥 A market of 125M+ consumers, 6 countries, $58–78B market size\n\nSuppliers, producers and buyers meet here in one place. Registration takes 30 seconds — shall we start?",
+    };
+    return msg[language];
+  },
 
   openApp: {
     uz: "Ro'yxatdan o'tish 30 sekunda — hozir to'lov yo'q 👇",
@@ -13,7 +18,11 @@ export const botText = {
     en: "Registration takes 30 seconds — no charge 👇",
   } satisfies Record<Language, string>,
 
-  openAppButton: "📝 Ro'yxatdan o'tish / Регистрация / Register",
+  openAppButton: {
+    uz: "📝 Ro'yxatdan o'tish",
+    ru: "📝 Регистрация",
+    en: "📝 Register",
+  } satisfies Record<Language, string>,
 
   alreadyRegistered: {
     uz: "Siz allaqachon ro'yxatdan o'tgansiz ✅ Ko'rishguncha — 20–22 oktabr, SOF EXPO, Samarqand!",

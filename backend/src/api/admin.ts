@@ -244,3 +244,215 @@ adminRouter.get("/audit", async (req, res) => {
     })),
   });
 });
+
+// --------------------------------------------------------------------------
+// Leads
+// --------------------------------------------------------------------------
+
+adminRouter.get("/leads", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const limit = Math.min(Number(req.query.limit ?? 100), 500);
+  const rows = await prisma.registration.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: { user: true },
+  });
+  res.json({
+    items: rows.map((r: any) => ({
+      id: r.id,
+      type: r.type,
+      language: r.language,
+      fullName: r.fullName,
+      position: r.position,
+      phone: r.phone,
+      companyName: r.companyName,
+      companyYears: r.companyYears,
+      companyActivity: r.companyActivity,
+      spaceNeeded: r.spaceNeeded,
+      willAttend: r.willAttend,
+      city: r.city,
+      leadScore: r.leadScore,
+      leadTier: r.leadTier,
+      status: r.status,
+      amoLeadId: r.amoLeadId,
+      createdAt: r.createdAt,
+      user: {
+        telegramId: r.user.telegramId.toString(),
+        username: r.user.username,
+        firstName: r.user.firstName,
+      },
+      utm: {
+        source: r.user.utmSource,
+        medium: r.user.utmMedium,
+        campaign: r.user.utmCampaign,
+        content: r.user.utmContent,
+        term: r.user.utmTerm,
+      },
+    })),
+  });
+});
+
+adminRouter.get("/leads.csv", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const limit = Math.min(Number(req.query.limit ?? 1000), 5000);
+  const rows = await prisma.registration.findMany({
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    include: { user: true },
+  });
+  const header = [
+    "id", "createdAt", "type", "language", "leadScore", "leadTier", "status",
+    "fullName", "position", "phone", "companyName", "companyYears", "companyActivity",
+    "spaceNeeded", "city", "willAttend", "telegramId", "telegramUsername",
+    "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
+    "amoLeadId",
+  ];
+  const lines: string[] = [header.join(",")];
+  for (const r of rows) {
+    const cells = [
+      r.id,
+      r.createdAt.toISOString(),
+      r.type,
+      r.language,
+      r.leadScore,
+      r.leadTier ?? "",
+      r.status,
+      r.fullName,
+      r.position,
+      r.phone ?? "",
+      r.companyName ?? "",
+      r.companyYears ?? "",
+      r.companyActivity ?? "",
+      r.spaceNeeded ?? "",
+      r.city ?? "",
+      r.willAttend === null ? "" : r.willAttend ? "yes" : "no",
+      r.user.telegramId.toString(),
+      r.user.username ?? "",
+      r.user.utmSource ?? "",
+      r.user.utmMedium ?? "",
+      r.user.utmCampaign ?? "",
+      r.user.utmContent ?? "",
+      r.user.utmTerm ?? "",
+      r.amoLeadId ?? "",
+    ].map(csvCell);
+    lines.push(cells.join(","));
+  }
+  await writeAudit(user.id, "leads_export", req, undefined, { count: rows.length });
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="leads-${new Date().toISOString().slice(0, 10)}.csv"`);
+  res.send(lines.join("\n"));
+});
+
+adminRouter.get("/leads/:id", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+  const r = await prisma.registration.findUnique({
+    where: { id },
+    include: { user: true },
+  });
+  if (!r) return res.status(404).json({ error: "Not found" });
+  res.json({
+    id: r.id,
+    type: r.type,
+    language: r.language,
+    fullName: r.fullName,
+    position: r.position,
+    phone: r.phone,
+    companyName: r.companyName,
+    companyYears: r.companyYears,
+    companyActivity: r.companyActivity,
+    spaceNeeded: r.spaceNeeded,
+    willAttend: r.willAttend,
+    city: r.city,
+    leadScore: r.leadScore,
+    leadTier: r.leadTier,
+    status: r.status,
+    amoLeadId: r.amoLeadId,
+    createdAt: r.createdAt,
+    user: {
+      telegramId: r.user.telegramId.toString(),
+      username: r.user.username,
+      firstName: r.user.firstName,
+    },
+    utm: {
+      source: r.user.utmSource,
+      medium: r.user.utmMedium,
+      campaign: r.user.utmCampaign,
+      content: r.user.utmContent,
+      term: r.user.utmTerm,
+    },
+  });
+});
+
+/** Escape a single CSV cell per RFC 4180. */
+function csvCell(v: unknown): string {
+  const s = v === null || v === undefined ? "" : String(v);
+  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+
+// --------------------------------------------------------------------------
+// Sequences
+// --------------------------------------------------------------------------
+
+adminRouter.get("/sequences", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const sequences = await prisma.sequence.findMany({
+    orderBy: { key: "asc" },
+    include: { steps: { orderBy: { order: "asc" } } },
+  });
+  res.json({
+    items: sequences.map((s: any) => ({
+      id: s.id,
+      key: s.key,
+      name: s.name,
+      description: s.description,
+      enabled: s.enabled,
+      steps: s.steps.map((st: any) => ({
+        id: st.id,
+        order: st.order,
+        afterMinutes: st.afterMinutes,
+        textUz: st.textUz,
+        textRu: st.textRu,
+        textEn: st.textEn,
+        cta: st.cta,
+      })),
+    })),
+  });
+});
+
+adminRouter.post("/sequences/:id", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = String(req.params.id);
+  const body = (req.body ?? {}) as { enabled?: boolean; steps?: Array<{ id?: string; order: number; afterMinutes: number; textUz: string; textRu: string; textEn: string; cta: boolean }> };
+  if (typeof body.enabled !== "boolean" || !Array.isArray(body.steps)) {
+    return res.status(400).json({ error: "enabled and steps[] are required" });
+  }
+  const seq = await prisma.sequence.findUnique({ where: { id } });
+  if (!seq) return res.status(404).json({ error: "Sequence not found" });
+
+  // Replace all steps in a transaction so partial writes are impossible.
+  await prisma.$transaction([
+    prisma.sequence.update({ where: { id }, data: { enabled: body.enabled } }),
+    prisma.sequenceStep.deleteMany({ where: { sequenceId: id } }),
+    prisma.sequenceStep.createMany({
+      data: body.steps.map((s, i) => ({
+        sequenceId: id,
+        order: s.order ?? i + 1,
+        afterMinutes: Math.max(1, Math.floor(s.afterMinutes)),
+        textUz: s.textUz,
+        textRu: s.textRu,
+        textEn: s.textEn,
+        cta: Boolean(s.cta),
+      })),
+    }),
+  ]);
+  await writeAudit(user.id, "sequence_update", req, id, { steps: body.steps.length, enabled: body.enabled });
+  res.json({ ok: true });
+});

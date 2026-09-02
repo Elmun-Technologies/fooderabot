@@ -8,22 +8,16 @@ import { StandForm, type StandFormValues } from "./components/StandForm";
 import { SuccessScreen } from "./components/SuccessScreen";
 import { t, type Language } from "./i18n";
 import { checkRegistration, submitRegistration, type RegistrationType } from "./lib/api";
+import type { RegistrationDetails } from "./lib/registrationSummary";
 import { initTelegramWebApp, tg } from "./lib/telegram";
-
-interface RegisteredDetails {
-  type?: RegistrationType;
-  fullName?: string;
-  position?: string;
-  companyName?: string;
-}
 
 type Step =
   | { name: "loading" }
-  | { name: "alreadyRegistered"; language: Language; details: RegisteredDetails }
+  | { name: "alreadyRegistered"; language: Language; details: RegistrationDetails }
   | { name: "language" }
   | { name: "role"; language: Language }
   | { name: "form"; role: RegistrationType; language: Language }
-  | { name: "success"; role: RegistrationType; language: Language; willAttend?: boolean }
+  | { name: "success"; language: Language; details: RegistrationDetails }
   | { name: "error"; message: string; language: Language };
 
 export default function App() {
@@ -38,7 +32,16 @@ export default function App() {
           setStep({
             name: "alreadyRegistered",
             language: (res.language as Language) ?? "uz",
-            details: { type: res.type, fullName: res.fullName, position: res.position, companyName: res.companyName },
+            details: {
+              type: res.type,
+              fullName: res.fullName,
+              position: res.position,
+              companyName: res.companyName,
+              companyYears: res.companyYears,
+              companyActivity: res.companyActivity,
+              spaceNeeded: res.spaceNeeded,
+              willAttend: res.willAttend,
+            },
           });
         } else {
           setStep({ name: "language" });
@@ -54,6 +57,7 @@ export default function App() {
   ) {
     setSubmitting(true);
     try {
+      let details: RegistrationDetails;
       if (role === "STAND") {
         const v = values as StandFormValues;
         await submitRegistration({
@@ -66,7 +70,7 @@ export default function App() {
           companyActivity: v.companyActivity,
           spaceNeeded: v.spaceNeeded,
         });
-        setStep({ name: "success", role, language });
+        details = { type: "STAND", ...v };
       } else {
         const v = values as GuestFormValues;
         await submitRegistration({
@@ -77,8 +81,9 @@ export default function App() {
           companyName: v.companyName,
           willAttend: v.willAttend,
         });
-        setStep({ name: "success", role, language, willAttend: v.willAttend });
+        details = { type: "GUEST", ...v };
       }
+      setStep({ name: "success", language, details });
       tg.HapticFeedback?.notificationOccurred("success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
@@ -135,7 +140,7 @@ export default function App() {
       );
 
     case "success":
-      return <SuccessScreen language={step.language} type={step.role} willAttend={step.willAttend} />;
+      return <SuccessScreen language={step.language} details={step.details} />;
 
     case "error":
       return (

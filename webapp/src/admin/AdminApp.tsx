@@ -659,6 +659,14 @@ function SequenceEditor({ sequence, onSaved }: { sequence: SequenceRow; onSaved:
               }} />
               {t(language, "adminStepCta")}
             </label>
+            <button
+              type="button"
+              className="adm__btn adm__btn--secondary"
+              style={{ width: "auto", padding: "6px 14px", color: "var(--ink)" }}
+              onClick={() => setSteps((prev) => prev.filter((_, j) => j !== i).map((p, j) => ({ ...p, order: j + 1 })))}
+            >
+              {t(language, "adminStepRemove")}
+            </button>
           </div>
           <div className="adm__step-row">
             <textarea className="adm__textarea" value={s.textUz} onChange={(e) => setSteps((prev) => prev.map((p, j) => (j === i ? { ...p, textUz: e.target.value } : p)))} placeholder="O'zbekcha" />
@@ -667,7 +675,28 @@ function SequenceEditor({ sequence, onSaved }: { sequence: SequenceRow; onSaved:
           </div>
         </div>
       ))}
-      <div style={{ display: "flex", alignItems: "center" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="adm__btn adm__btn--secondary"
+          style={{ width: "auto", padding: "10px 20px", color: "var(--ink)" }}
+          onClick={() =>
+            setSteps((prev) => [
+              ...prev,
+              {
+                id: `new-${Date.now()}`,
+                order: prev.length + 1,
+                afterMinutes: 60,
+                textUz: "",
+                textRu: "",
+                textEn: "",
+                cta: false,
+              },
+            ])
+          }
+        >
+          + {t(language, "adminStepAdd")}
+        </button>
         <button className="adm__btn" style={{ width: "auto", padding: "10px 20px" }} disabled={saving} onClick={save}>
           {saving ? t(language, "adminCommonLoading") : t(language, "adminStepSave")}
         </button>

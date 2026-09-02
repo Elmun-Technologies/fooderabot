@@ -272,6 +272,8 @@
   "adminStepSave": "Сохранить",
   "adminStepSaved": "Сохранено ✓",
   "adminStepSaveError": "Ошибка сохранения",
+  "adminStepAdd": "Добавить шаг",
+  "adminStepRemove": "Удалить",
   "adminAuditTitle": "Журнал аудита",
   "adminAuditEmpty": "Пока нет записей аудита",
   "adminCommonLoading": "Загрузка...",

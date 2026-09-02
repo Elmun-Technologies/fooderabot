@@ -334,6 +334,11 @@ ADMIN_PASSWORD=<kamida 8 belgi>
 
 # ixtiyoriy — qat'iy CORS (default: open, initData auth bilan)
 CORS_ORIGIN=https://your-domain.com
+
+# Stage 7: admin panel IP allowlist (ixtiyoriy, default: open)
+# Bo'sh = hammaga ruxsat. 'any' = aniq disable. Misol:
+# ADMIN_IP_ALLOWLIST="213.230.121.5, 92.38.0.0/16, 2001:db8::/32"
+ADMIN_IP_ALLOWLIST=
 ```
 
 **Muhim:** `BOT_TOKEN`, `DATABASE_URL`, `WEBAPP_URL`, `LEADS_GROUP_CHAT_ID`
@@ -407,7 +412,49 @@ ko'tariladi. Nginx `/api/*` ni backend ga proxy qiladi.
 | 4 — Backend analytics + admin | ✅ | Event model, track endpoint, sequences, admin auth |
 | 5 — Admin panel UI | ✅ | Login, dashboard, leads, sequences, audit, CSV |
 | 6 — Hardening + QA | ✅ | Rate limit, security headers, README, deploy hujjati |
-| 7 — Broadcast/Workflow UI | ⏳ | Schema bor, UI va dispatcher yo'q |
+| 7 — Marketing engine | ✅ | Broadcast composer, workflow engine, AVIF images, argon2id, IP allowlist |
 
-**Total:** 20+ commit, 5 ta additive migration, 9 ta yangi model,
-278 i18n kalit, 70+ KB gzip Mini App + 5 KB alohida admin chunk.
+**Total:** 25+ commit, 5 ta additive migration, 9 ta yangi model,
+359 i18n kalit, 78 KB gzip Mini App + 8 KB alohida admin chunk.
+
+---
+
+## Marketing engine (Stage 7)
+
+### Broadcast (rassilka)
+- Admin `/admin` → "Rassilka" — 3 tilda composer, 8 ta segment
+  preset chip (Barcha / Stand / Mehmon / HOT / Toshkent / Samarqand /
+  Telefon / Oxirgi 7 kun), ixtiyoriy rasm (bot token orqali Telegram'ga
+  yuklanadi, file_id saqlanadi), "Hozir yuborish" yoki "Belgilangan
+  vaqtda"
+- Inline 3-til preview (Telegram bubble ko'rinishida)
+- Scheduler: 30s tick, ≤25 msg/s (40ms delay)
+- Progress bar (real-time poll 5s), cancel button
+- Audience 0 bo'lsa — "auditoriya bo'sh" ogohlantirish, broadcast DONE
+
+### Workflow
+- Trigger: `new_lead` / `lead_hot` / `drop_off` / `manual`
+- Conditions: type/leadTier/city/language/hasPhone/minScore
+- Actions: `send_message` (3 til), `tag_user`, `notify_admins`
+  (guruhga yuborish)
+- Idempotent — bir xil workflow bir xil user/event uchun 1 marta
+- Default workflow'lar avtomatik seed:
+  - "HOT lead → ping admins" — yangi HOT leadda guruhga 🚨
+  - "Drop-off 24h → tag" — 24 soat ichida registratsiya qilmagan
+    userlarni belgilash (keyin broadcast bilan targ'ib qilish)
+
+### Xavfsizlik (Stage 7)
+- **argon2id** parol hash (m=19MiB, t=2, p=1, OWASP 2023+). Eski
+  PBKDF2 hashlari avtomatik argon2id ga upgrade (login ulanganda
+  transparent).
+- **IP allowlist** (`ADMIN_IP_ALLOWLIST`): IPv4/IPv6, CIDR, `any`.
+  Default fail-open. Production'da ofis+uy IP'larini belgilang.
+- Rate limit: track 60/min, submit 10/min, login 5/min, IP allowlist
+  qo'shimcha qatlam sifatida ishlaydi.
+
+### Image optimallashtirish
+- `npm run build` `scripts/optimize-images.mjs` ni ishga tushiradi
+  (sharp asosida)
+- Hero rasm: 260 KB JPG → 80 KB AVIF / 159 KB WebP (budget ≤120 KB)
+- Bayroqlar: o'rtacha 18 KB → 2-3 KB
+- `<picture>` elementi brauzerni eng yengil formatga yo'naltiradi

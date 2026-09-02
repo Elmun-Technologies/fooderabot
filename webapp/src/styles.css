@@ -151,11 +151,6 @@ img {
   margin: 2px 0 22px;
 }
 
-.heading--compact {
-  font-size: 21px;
-  margin: 18px 0 14px;
-}
-
 .subheading {
   color: var(--text-muted);
   font-size: 15px;
@@ -163,89 +158,19 @@ img {
   margin: -14px 0 24px;
 }
 
-/* ---------- hero ---------- */
+/* ---------- selectable rows (language / role) ---------- */
 
-.hero {
-  position: relative;
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  margin-top: 6px;
-  box-shadow: var(--shadow-card);
-  background:
-    repeating-linear-gradient(
-      115deg,
-      rgb(255 255 255 / 0.05) 0 2px,
-      transparent 2px 26px
-    ),
-    linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-}
-
-.hero__content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: 20px 18px;
-  gap: 8px;
-}
-
-.hero__logo {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  margin-bottom: 2px;
-}
-
-.hero__tagline {
-  margin: 0;
-  color: rgb(255 255 255 / 0.92);
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-}
-
-.hero__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.hero__pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: rgb(255 255 255 / 0.16);
-  backdrop-filter: blur(6px);
-  border: 1px solid rgb(255 255 255 / 0.22);
-  color: #fff;
-  font-size: 12.5px;
-  font-weight: 600;
-  padding: 6px 11px;
-  border-radius: 999px;
-}
-
-.hero__countdown {
-  color: var(--gold);
-  font-size: 12.5px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  background: rgb(15 18 26 / 0.55);
-  border-radius: 999px;
-  padding: 5px 11px;
-}
-
-/* ---------- role cards ---------- */
-
-.role-cards {
+.row-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.role-card {
+.row {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px;
+  padding: 15px 16px;
   border: 1.5px solid var(--divider);
   border-radius: var(--radius-md);
   background: var(--bg);
@@ -258,223 +183,47 @@ img {
   transition: border-color 0.15s ease, transform 0.1s ease;
 }
 
-.role-card:active {
+.row:active {
   transform: scale(0.99);
   border-color: var(--primary);
 }
 
-.role-card--guest:active {
-  border-color: var(--gold);
-}
-
-.role-card__icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: var(--primary-tint);
+.row__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--surface);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 20px;
   flex-shrink: 0;
 }
 
-.role-card--guest .role-card__icon {
-  background: var(--gold-tint);
-}
-
-.role-card__body {
+.row__body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
-.role-card__title {
-  font-weight: 700;
+.row__title {
+  font-weight: 600;
   font-size: 16px;
 }
 
-.role-card__desc {
+.row__desc {
   color: var(--text-muted);
   font-size: 13px;
   line-height: 1.4;
 }
 
-.role-card__hint {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary);
-  margin-top: 2px;
-}
-
-.role-card--guest .role-card__hint {
-  color: var(--gold-dark);
-}
-
-.role-card__chevron {
+.row__chevron {
   color: var(--text-muted);
   opacity: 0.5;
-  font-size: 22px;
+  font-size: 20px;
   flex-shrink: 0;
-}
-
-.trust {
-  margin: 14px 2px 0;
-  text-align: center;
-  color: var(--text-muted);
-  font-size: 12.5px;
-  font-weight: 500;
-}
-
-/* ---------- scarcity ---------- */
-
-.scarcity {
-  margin: 0 0 12px;
-  padding: 10px 14px;
-  border-radius: var(--radius-md);
-  background: var(--gold-tint);
-  color: var(--gold-dark);
-  font-size: 13px;
-  font-weight: 700;
-  text-align: center;
-}
-
-/* ---------- stats (2×2, mirrors the site's market block) ---------- */
-
-.stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 20px;
-}
-
-.stat {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 16px 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  text-align: center;
-}
-
-.stat__value {
-  font-size: 19px;
-  font-weight: 800;
-  color: var(--primary);
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.stat__label {
-  font-size: 11.5px;
-  color: var(--text-muted);
-  line-height: 1.3;
-}
-
-/* ---------- benefits (site: "Uniting the industry") ---------- */
-
-.benefits {
-  margin-top: 20px;
-}
-
-.section-title {
-  margin: 0 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.benefits__list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.benefit {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.benefit__icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--primary-tint);
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 17px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-/* ---------- countries ---------- */
-
-.countries {
-  margin-top: 20px;
-}
-
-.countries__title {
-  margin: 0 0 10px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.countries__flags {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  padding: 2px 0 6px;
-  scrollbar-width: none;
-}
-
-.countries__flags::-webkit-scrollbar {
-  display: none;
-}
-
-.countries__item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 10px 12px 8px;
-  min-width: 64px;
-}
-
-.countries__item img {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--divider);
-}
-
-.countries__code {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text);
-  letter-spacing: 0.04em;
-}
-
-.countries__market {
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text-muted);
-  white-space: nowrap;
 }
 
 /* ---------- form fields ---------- */
@@ -607,44 +356,6 @@ img {
 
 .chips__error {
   width: 100%;
-}
-
-/* ---------- package card (site: "Get your exhibitor package") ---------- */
-
-.package {
-  background: var(--surface);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
-}
-
-.package__title {
-  margin: 0 0 9px;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.package__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-}
-
-.package__list li {
-  display: flex;
-  align-items: baseline;
-  gap: 9px;
-  font-size: 13.5px;
-  color: var(--text-muted);
-  line-height: 1.4;
-}
-
-.package__check {
-  color: var(--primary);
-  font-weight: 800;
-  flex-shrink: 0;
 }
 
 /* ---------- phone ---------- */

@@ -38,7 +38,7 @@ export function PhoneField({
           onChange={(e) => onChange(e.target.value)}
         />
         <button type="button" className="phone__tg" disabled={requesting} onClick={handleRequest}>
-          {requesting ? "…" : `📲 ${t(language, "phoneFromTelegram")}`}
+          {requesting ? "…" : t(language, "phoneFromTelegram")}
         </button>
       </div>
       {error ? <span className="field__error">{error}</span> : note ? <span className="field__hint">{t(language, "phoneNote")}</span> : null}

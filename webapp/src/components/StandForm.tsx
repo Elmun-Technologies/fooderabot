@@ -95,25 +95,8 @@ export function StandForm({
         <div className="form-step">
           <p className="question">{t(language, "categoryTitle")}</p>
           <p className="question__sub">{t(language, "categorySubtitle")}</p>
-          <div className="package">
-            <p className="package__title">{t(language, "packageTitle")}</p>
-            <ul className="package__list">
-              <li>
-                <span className="package__check">✓</span>
-                {t(language, "packagePdf")}
-              </li>
-              <li>
-                <span className="package__check">✓</span>
-                {t(language, "packageReport")}
-              </li>
-              <li>
-                <span className="package__check">✓</span>
-                {t(language, "packagePrice")}
-              </li>
-            </ul>
-          </div>
           <Chips
-            options={CATEGORY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o), icon: o.icon }))}
+            options={CATEGORY_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
             value={values.companyActivity}
             onChange={set("companyActivity")}
             error={categoryError}
@@ -155,7 +138,7 @@ export function StandForm({
             <span className="field__label">{t(language, "standTypeTitle")}</span>
             <span className="field__hint">{t(language, "standTypeSubtitle")}</span>
             <Chips
-              options={STAND_TYPE_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o), icon: o.icon }))}
+              options={STAND_TYPE_OPTIONS.map((o) => ({ value: o.key, label: optionLabel(language, o) }))}
               value={values.spaceNeeded}
               onChange={set("spaceNeeded")}
               error={standTypeError}
@@ -193,7 +176,7 @@ export function StandForm({
             >
               {submitting ? t(language, "loading") : t(language, "submit")}
             </button>
-            <p className="actions__trust">🔒 {t(language, "submitTrust")}</p>
+            <p className="actions__trust">{t(language, "submitTrust")}</p>
           </>
         )}
       </div>

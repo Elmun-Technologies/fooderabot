@@ -84,8 +84,9 @@ webappRouter.post("/submit", async (req, res) => {
 
 /**
  * Stage 4 analytics endpoint.
- * Accepts a single event with the shape defined in services/analytics.ts.
- * The client should batch whenever possible (see webapp/src/lib/analytics.ts).
+ * The client (webapp/src/lib/analytics.ts) always batches: it POSTs
+ * `{ anonymousId, events: [{ name, screen, props }, ...] }`. A bare single
+ * event (no `events[]`) is also accepted for any other caller.
  *
  * Auth is optional: we accept initData when present (then we attach the
  * matching userId + UTM) and otherwise fall back to a client-supplied
@@ -104,22 +105,23 @@ webappRouter.post("/track", async (req, res) => {
 
   const body = (req.body ?? {}) as Record<string, unknown>;
   const { userId, utm } = await getTrackedUser(req);
-
   const anonymousId = typeof body.anonymousId === "string" ? body.anonymousId.slice(0, 64) : undefined;
-  const screen = typeof body.screen === "string" ? body.screen.slice(0, 64) : undefined;
-  const name = typeof body.name === "string" ? body.name : "";
-  const props = body.props;
 
-  try {
-    const result = await recordEvent({ name, screen, props, anonymousId, userId, utm });
-    if (!result.recorded) {
-      return res.status(400).json({ ok: false, reason: result.reason });
+  const rawEvents = (Array.isArray(body.events) ? body.events : [body]).slice(0, 20);
+  let recorded = 0;
+  for (const raw of rawEvents) {
+    const e = (raw ?? {}) as Record<string, unknown>;
+    const screen = typeof e.screen === "string" ? e.screen.slice(0, 64) : undefined;
+    const name = typeof e.name === "string" ? e.name : "";
+    const props = e.props;
+    try {
+      const result = await recordEvent({ name, screen, props, anonymousId, userId, utm });
+      if (result.recorded) recorded++;
+    } catch (err) {
+      console.error("Failed to record event", err);
     }
-    res.json({ ok: true });
-  } catch (err) {
-    console.error("Failed to record event", err);
-    res.status(202).json({ ok: false, reason: "server_error" });
   }
+  res.json({ ok: true, recorded });
 });
 
 /** Health check used by the in-app analytics library to know the track

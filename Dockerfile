@@ -40,7 +40,14 @@ ENV WEBAPP_STATIC_DIR=/app/public
 COPY --from=backend-build /src/backend/node_modules ./node_modules
 COPY --from=backend-build /src/backend/dist ./dist
 COPY --from=backend-build /src/backend/prisma ./prisma
+# scripts/createAdmin.ts imports from ../src (TS source, run via tsx), so
+# src/ needs to ship too - not just the compiled dist/ used by `node dist/index.js`.
+COPY --from=backend-build /src/backend/src ./src
+COPY --from=backend-build /src/backend/scripts ./scripts
 COPY --from=webapp-build /src/webapp/dist ./public
-COPY backend/package.json backend/package-lock.json* ./
+COPY backend/package.json backend/package-lock.json* backend/tsconfig.json ./
 EXPOSE 3000
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/index.js"]
+# Migrations run via fly.toml's [deploy].release_command (a single ephemeral
+# release machine), not here - running "prisma migrate deploy" in each app
+# machine's own startup lets concurrent machines race the same migration.
+CMD ["node", "dist/index.js"]

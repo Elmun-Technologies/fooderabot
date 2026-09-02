@@ -39,14 +39,17 @@ export function StandForm({
   submitting,
   onBack,
   onSubmit,
+  initial,
 }: {
   language: Language;
   submitting: boolean;
   onBack: () => void;
   onSubmit: (values: StandFormValues) => void;
+  /** Pre-filled values when returning from an error screen (no re-typing). */
+  initial?: Partial<StandFormValues>;
 }) {
-  const [step, setStep] = useState(1);
-  const [values, setValues] = useState<StandFormValues>(EMPTY);
+  const [step, setStep] = useState(initial?.companyActivity ? (initial.companyYears || initial.spaceNeeded || initial.phone ? 3 : 2) : 1);
+  const [values, setValues] = useState<StandFormValues>({ ...EMPTY, ...initial });
   const [touched, setTouched] = useState(false);
 
   const set = (key: keyof StandFormValues) => (v: string) => setValues((prev) => ({ ...prev, [key]: v }));

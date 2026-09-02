@@ -9,6 +9,7 @@ export function ResultScreen({
   nextSteps,
   footer,
   action,
+  detail,
 }: {
   icon: ReactNode;
   variant?: "primary" | "gold" | "warn";
@@ -18,6 +19,8 @@ export function ResultScreen({
   nextSteps?: string[];
   footer?: ReactNode;
   action?: ReactNode;
+  /** Small muted technical line under the main text (error diagnostics). */
+  detail?: ReactNode;
 }) {
   return (
     <div className="screen">
@@ -25,6 +28,7 @@ export function ResultScreen({
         <div className={"result__icon" + (variant !== "primary" ? ` result__icon--${variant}` : "")}>{icon}</div>
         <h1 className="result__title">{title}</h1>
         <p className="result__text">{text}</p>
+        {detail ? <p className="result__detail">{detail}</p> : null}
         {details?.length ? (
           <div className="summary-card">
             {details.map((d) => (

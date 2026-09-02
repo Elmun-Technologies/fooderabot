@@ -11,6 +11,11 @@ function getValidatedUser(req: import("express").Request) {
   return validateInitData(initData, config.botToken);
 }
 
+/** Unauthenticated liveness probe so clients can preflight connectivity. */
+webappRouter.get("/health", (_req, res) => {
+  res.json({ ok: true });
+});
+
 webappRouter.get("/check", async (req, res) => {
   const validated = getValidatedUser(req);
   if (!validated) return res.status(401).json({ error: "Invalid Telegram init data" });

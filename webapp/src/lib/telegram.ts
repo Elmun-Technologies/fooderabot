@@ -5,6 +5,22 @@ interface TelegramContact {
   user_id?: number;
 }
 
+/**
+ * Payload delivered as the SECOND argument of the `requestContact` callback
+ * (see telegram-web-app.js: `callback(requestSent, webViewEvent)`). The shared
+ * contact is NOT merged into `initDataUnsafe` — it only lives here, which is
+ * why reading `initDataUnsafe.contact` always returned undefined before.
+ */
+interface ContactRequestEvent {
+  status?: string;
+  response?: string;
+  responseUnsafe?: {
+    auth_date?: string | number;
+    hash?: string;
+    contact?: TelegramContact;
+  };
+}
+
 interface TelegramWebApp {
   initData: string;
   initDataUnsafe: {
@@ -25,8 +41,15 @@ interface TelegramWebApp {
   close: () => void;
   openTelegramLink: (link: string) => void;
   showAlert?: (message: string, callback?: () => void) => void;
-  /** Bot API 7.2+ — asks the user to share the phone number with the bot. */
-  requestContact?: (callback: (isShared: boolean) => void, errorCallback?: (error: unknown) => void) => void;
+  /**
+   * Bot API 7.2+ — asks the user to share the phone number with the bot.
+   * The callback's first argument tells whether the user shared; the second
+   * carries the shared contact (`event.responseUnsafe.contact`).
+   */
+  requestContact?: (
+    callback: (isShared: boolean, event?: ContactRequestEvent) => void,
+    errorCallback?: (error: unknown) => void,
+  ) => void;
   MainButton: {
     text: string;
     show: () => void;
@@ -83,19 +106,39 @@ export function initTelegramWebApp() {
   tg.expand();
 }
 
+/** True when the current Telegram client can share the phone number (Bot API 7.2+). */
+export function canRequestPhoneViaTelegram(): boolean {
+  return typeof tg.requestContact === "function";
+}
+
+function normalizePhone(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  if (!digits) return null;
+  return trimmed.startsWith("+") ? trimmed : `+${digits}`;
+}
+
 /**
  * Asks Telegram for the user's phone number (1 tap). Resolves with the number
  * or null when unavailable / declined — the manual input stays as the fallback.
+ *
+ * The shared contact arrives as the callback's SECOND argument
+ * (`event.responseUnsafe.contact.phone_number`); `initDataUnsafe` never
+ * contains it, so we must not look there.
  */
 export function requestPhoneFromTelegram(): Promise<string | null> {
   return new Promise((resolve) => {
-    if (typeof tg.requestContact !== "function") return resolve(null);
+    if (!canRequestPhoneViaTelegram()) return resolve(null);
     try {
-      tg.requestContact(
-        () => {
-          // The shared contact appears in initDataUnsafe after the callback.
-          const phone = tg.initDataUnsafe.contact?.phone_number;
-          resolve(phone ? (phone.startsWith("+") ? phone : `+${phone}`) : null);
+      tg.requestContact!(
+        (isShared, event) => {
+          if (!isShared) return resolve(null);
+          const phone =
+            normalizePhone(event?.responseUnsafe?.contact?.phone_number) ??
+            // Belt & braces for clients that do merge it into initDataUnsafe.
+            normalizePhone(tg.initDataUnsafe.contact?.phone_number);
+          resolve(phone);
         },
         () => resolve(null),
       );

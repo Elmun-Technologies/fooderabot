@@ -31,6 +31,9 @@ export async function checkRegistration(tgUser: TelegramWebAppUser) {
     alreadyRegistered: Boolean(user.registration),
     type: user.registration?.type,
     language: user.registration?.language,
+    fullName: user.registration?.fullName,
+    position: user.registration?.position,
+    companyName: user.registration?.companyName ?? undefined,
   };
 }
 

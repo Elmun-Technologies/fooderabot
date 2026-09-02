@@ -5,12 +5,14 @@ export function ResultScreen({
   variant = "primary",
   title,
   text,
+  details,
   action,
 }: {
   icon: ReactNode;
   variant?: "primary" | "gold" | "warn";
   title: ReactNode;
   text: ReactNode;
+  details?: { label: string; value: ReactNode }[];
   action?: ReactNode;
 }) {
   return (
@@ -19,6 +21,16 @@ export function ResultScreen({
         <div className={"result__icon" + (variant !== "primary" ? ` result__icon--${variant}` : "")}>{icon}</div>
         <h1 className="result__title">{title}</h1>
         <p className="result__text">{text}</p>
+        {details?.length ? (
+          <div className="summary-card">
+            {details.map((d) => (
+              <div className="summary-card__row" key={d.label}>
+                <span className="summary-card__label">{d.label}</span>
+                <span className="summary-card__value">{d.value}</span>
+              </div>
+            ))}
+          </div>
+        ) : null}
       </div>
       {action ? <div className="actions">{action}</div> : null}
     </div>

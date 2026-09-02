@@ -10,9 +10,16 @@ import { t, type Language } from "./i18n";
 import { checkRegistration, submitRegistration, type RegistrationType } from "./lib/api";
 import { initTelegramWebApp, tg } from "./lib/telegram";
 
+interface RegisteredDetails {
+  type?: RegistrationType;
+  fullName?: string;
+  position?: string;
+  companyName?: string;
+}
+
 type Step =
   | { name: "loading" }
-  | { name: "alreadyRegistered"; language: Language }
+  | { name: "alreadyRegistered"; language: Language; details: RegisteredDetails }
   | { name: "language" }
   | { name: "role"; language: Language }
   | { name: "form"; role: RegistrationType; language: Language }
@@ -28,7 +35,11 @@ export default function App() {
     checkRegistration()
       .then((res) => {
         if (res.alreadyRegistered) {
-          setStep({ name: "alreadyRegistered", language: (res.language as Language) ?? "uz" });
+          setStep({
+            name: "alreadyRegistered",
+            language: (res.language as Language) ?? "uz",
+            details: { type: res.type, fullName: res.fullName, position: res.position, companyName: res.companyName },
+          });
         } else {
           setStep({ name: "language" });
         }
@@ -80,15 +91,16 @@ export default function App() {
   switch (step.name) {
     case "loading":
       return (
-        <div className="screen">
-          <div className="result">
-            <p className="result__text">{t("uz", "loading")}</p>
+        <div className="splash">
+          <div className="splash__mark">
+            FOODERA <span>EXPO 2026</span>
           </div>
+          <div className="splash__spinner" />
         </div>
       );
 
     case "alreadyRegistered":
-      return <AlreadyRegistered language={step.language} />;
+      return <AlreadyRegistered language={step.language} details={step.details} />;
 
     case "language":
       return <LanguageSelect onSelect={(language) => setStep({ name: "role", language })} />;

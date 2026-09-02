@@ -373,15 +373,18 @@ fly secrets list -a fooderabot-api    # secretlar ro'yxati
 **Birinchi admin yaratish (production):**
 ```bash
 fly ssh console -a fooderabot-api
-cd /app/backend
+cd /app
 npx tsx scripts/createAdmin.ts admin <kuchli_parol>
 ```
 
 ### Database migration (yangi model qo'shganda)
 
+`fly.toml`'dagi `[deploy].release_command` har bir `fly deploy`da
+migration'ni avtomatik ishga tushiradi. Qo'lda tekshirish kerak bo'lsa:
+
 ```bash
 fly ssh console -a fooderabot-api
-cd /app/backend
+cd /app
 npx prisma migrate deploy
 ```
 

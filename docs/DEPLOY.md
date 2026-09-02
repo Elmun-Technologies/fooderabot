@@ -117,23 +117,20 @@ fly scale count 1 -a fooderabot-api   # agar kerak bo'lsa
 
 ## 3. Database migration
 
-Yangi `prisma/migrations/...` qo'shilganda:
+`fly.toml`'da `[deploy].release_command = "npx prisma migrate deploy"`
+bor — har bir `fly deploy`da Fly avtomatik ravishda bitta vaqtinchalik
+release machine'da migration'ni ishga tushiradi, yangi image machine'larga
+chiqishidan oldin. Qo'lda ishga tushirish shart emas.
+
+Qo'lda tekshirish yoki muammo debug qilish kerak bo'lsa:
 
 ```bash
 fly ssh console -a fooderabot-api
-cd /app/backend
+cd /app
 npx prisma migrate deploy
 ```
 
-Yoki `fly.toml`'ga `release_command` qo'shish (tavsiya, keyingi PR):
-
-```toml
-[deploy]
-  release_command = "npx prisma migrate deploy"
-```
-
-Hozircha qo'lda ishlatamiz. Barcha migration **additive** —
-mavjud qatorlar buzilmaydi.
+Barcha migration **additive** — mavjud qatorlar buzilmaydi.
 
 ---
 
@@ -143,7 +140,7 @@ Admin panel `/admin` da:
 
 ```bash
 fly ssh console -a fooderabot-api
-cd /app/backend
+cd /app
 npx tsx scripts/createAdmin.ts <username> <password>
 ```
 
@@ -229,7 +226,7 @@ ishlaydi (test uchun qulay).
 
 ### "Xato: prisma generate failed"
 - `fly ssh console -a fooderabot-api`
-- `cd /app/backend && npx prisma generate`
+- `cd /app && npx prisma generate`
 - Keyin `fly deploy` yoki restart
 
 ---

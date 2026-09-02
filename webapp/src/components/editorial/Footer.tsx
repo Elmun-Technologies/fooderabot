@@ -1,4 +1,5 @@
 import { t, type Language } from "../../i18n";
+import { SoundToggle } from "./SoundToggle";
 
 interface FooterProps {
   language: Language;
@@ -8,6 +9,9 @@ export function Footer({ language }: FooterProps) {
   return (
     <footer className="edl-footer">
       <div className="edl__container">
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "var(--space-5)" }}>
+          <SoundToggle />
+        </div>
         <div className="edl-footer__row">
           <div>
             <div className="edl-footer__brand">

@@ -10,7 +10,9 @@ import { SuccessScreen } from "./components/SuccessScreen";
 import { ContactCard } from "./components/ContactCard";
 import { t, type Language } from "./i18n";
 import { ApiError, checkRegistration, pingApi, submitRegistration, type RegistrationType } from "./lib/api";
+import { haptics } from "./lib/haptics";
 import type { RegistrationDetails } from "./lib/registrationSummary";
+import { play } from "./lib/sound";
 import { initTelegramWebApp, tg } from "./lib/telegram";
 
 interface PendingSubmit {
@@ -137,7 +139,8 @@ export default function App() {
         details = { type: "GUEST", ...v };
       }
       setStep({ name: "success", language, details });
-      tg.HapticFeedback?.notificationOccurred("success");
+      haptics.success();
+      play("success");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       const friendly =
@@ -147,7 +150,7 @@ export default function App() {
             ? t(language, "errorAlreadyRegistered")
             : t(language, "errorGeneric");
       setStep({ name: "error", message, friendly, language, pending: { role, language, values } });
-      tg.HapticFeedback?.notificationOccurred("error");
+      haptics.error();
     } finally {
       setSubmitting(false);
     }

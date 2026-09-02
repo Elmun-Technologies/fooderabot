@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { t, type Language } from "../../i18n";
 import { haptics } from "../../lib/haptics";
+import { play, unlockAudio } from "../../lib/sound";
 import { Reveal } from "./Reveal";
 
 const EVENT_START_MS = new Date("2026-10-20T09:00:00+05:00").getTime();
@@ -87,6 +88,8 @@ export function HeroEditorial({ language, onPrimary, onSecondary }: HeroEditoria
               className="edl-btn edl-btn--primary edl-btn--full"
               onClick={() => {
                 haptics.confirm();
+                unlockAudio();
+                play("tap");
                 onPrimary();
               }}
             >

@@ -20,9 +20,9 @@ function nudgeText(stage: 1 | 2 | 3, language: Language): string {
       en: "You started registering for FOODERA EXPO 2026 👋 It only takes 30 seconds — want to finish it?",
     },
     2: {
-      uz: "Eslatma: FOODERA EXPO 2026'da 125M+ iste'molchi bozoriga chiqish imkoniyati va 6 mamlakatdan hamkorlar kutmoqda. Joylar soni cheklangan — ro'yxatdan o'tishni yakunlang.",
-      ru: "Напоминаем: на FOODERA EXPO 2026 вас ждёт выход на рынок 125M+ потребителей и партнёры из 6 стран. Количество мест ограничено — завершите регистрацию.",
-      en: "Reminder: FOODERA EXPO 2026 opens access to a 125M+ consumer market and partners from 6 countries. Spots are limited — finish your registration.",
+      uz: "Eslatma: FOODERA EXPO 2026'da stend joylari soni cheklangan. Yetkazib beruvchilar va xaridorlar bilan to'g'ridan-to'g'ri uchrashuv — ro'yxatdan o'tishni yakunlang.",
+      ru: "Напоминаем: на FOODERA EXPO 2026 количество стендов ограничено. Прямые встречи с поставщиками и байерами — завершите регистрацию.",
+      en: "Reminder: stand spots at FOODERA EXPO 2026 are limited. Direct meetings with suppliers and buyers — finish your registration.",
     },
     3: {
       uz: "Bu — FOODERA EXPO 2026'ga ro'yxatdan o'tish haqidagi oxirgi eslatmamiz. 20–22 oktabr, SOF EXPO, Samarqand. Ishtirok etishni xohlasangiz, hoziroq yakunlang.",

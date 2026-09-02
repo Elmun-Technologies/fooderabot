@@ -9,6 +9,7 @@ import { StandForm, type StandFormValues } from "./components/StandForm";
 import { SuccessScreen } from "./components/SuccessScreen";
 import { ContactCard } from "./components/ContactCard";
 import { t, type Language } from "./i18n";
+import { setScreen, track } from "./lib/analytics";
 import { ApiError, checkRegistration, pingApi, submitRegistration, type RegistrationType } from "./lib/api";
 import { haptics } from "./lib/haptics";
 import type { RegistrationDetails } from "./lib/registrationSummary";
@@ -100,7 +101,17 @@ export default function App() {
   useEffect(() => {
     initTelegramWebApp();
     void boot();
+    track("app_open", { lang: languageFromUrl() ?? undefined });
   }, [boot]);
+
+  // Stage 4: report screen_view whenever the active step changes so the
+  // funnel dashboard (Stage 5) can group events by where they happened.
+  useEffect(() => {
+    setScreen(step.name);
+    const role = "role" in step ? step.role : undefined;
+    const lang = "language" in step ? step.language : undefined;
+    track("screen_view", { step: step.name, role, lang });
+  }, [step]);
 
   async function handleSubmit(
     role: RegistrationType,
@@ -141,6 +152,7 @@ export default function App() {
       setStep({ name: "success", language, details });
       haptics.success();
       play("success");
+      track("submit_success", { role, lang: language });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Unknown error";
       const friendly =
@@ -151,6 +163,7 @@ export default function App() {
             : t(language, "errorGeneric");
       setStep({ name: "error", message, friendly, language, pending: { role, language, values } });
       haptics.error();
+      track("submit_error", { role, lang: language, code: err instanceof ApiError ? err.code : "HTTP" });
     } finally {
       setSubmitting(false);
     }

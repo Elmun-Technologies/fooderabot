@@ -56,6 +56,18 @@ export const STAND_TYPE_OPTIONS: OptionDef[] = [
   { key: "unsure", labelKey: "standUnsure" },
 ];
 
+/** Stage-2: home city — used both by the form and by the lead scoring engine
+ *  (Tashkent and Samarkand count as "home market" and bump the score by 5). */
+export const CITY_OPTIONS: OptionDef[] = [
+  { key: "Toshkent", labelKey: "cityTashkent" },
+  { key: "Samarqand", labelKey: "citySamarkand" },
+  { key: "Buxoro", labelKey: "cityBukhara" },
+  { key: "Andijon", labelKey: "cityAndijan" },
+  { key: "Farg'ona", labelKey: "cityFergana" },
+  { key: "Namangan", labelKey: "cityNamangan" },
+  { key: "Boshqa", labelKey: "cityOther" },
+];
+
 /** Localized label of an option (what the user saw — stored in the DB/CRM as-is). */
 export function optionLabel(language: Language, option: OptionDef): string {
   return t(language, option.labelKey);

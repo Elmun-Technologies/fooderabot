@@ -97,6 +97,7 @@ export interface CheckResponse {
   spaceNeeded?: string;
   willAttend?: boolean;
   phone?: string;
+  city?: string;
 }
 
 export function checkRegistration() {
@@ -122,6 +123,8 @@ export interface SubmitPayload {
   spaceNeeded?: string;
   willAttend?: boolean;
   phone?: string;
+  /** Stage-2: city the company operates from (STAND only). */
+  city?: string;
 }
 
 export function submitRegistration(payload: SubmitPayload) {

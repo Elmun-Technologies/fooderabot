@@ -11,6 +11,8 @@ export interface RegistrationDetails {
   spaceNeeded?: string;
   willAttend?: boolean;
   phone?: string;
+  /** Stage-2: home city. */
+  city?: string;
 }
 
 export function buildSummaryRows(language: Language, d: RegistrationDetails): { label: string; value: string }[] {
@@ -30,6 +32,7 @@ export function buildSummaryRows(language: Language, d: RegistrationDetails): { 
       const value = /m²|m2/i.test(d.spaceNeeded) ? d.spaceNeeded : `${d.spaceNeeded} m²`;
       rows.push({ label: t(language, "shortSpaceNeeded"), value });
     }
+    if (d.city) rows.push({ label: t(language, "leadCityLabel"), value: d.city });
   }
 
   if (d.type === "GUEST" && d.willAttend !== undefined) {

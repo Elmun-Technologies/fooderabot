@@ -81,6 +81,7 @@ export default function App() {
             spaceNeeded: res.spaceNeeded,
             willAttend: res.willAttend,
             phone: res.phone,
+            city: res.city,
           },
         });
       } else {
@@ -119,6 +120,7 @@ export default function App() {
           companyActivity: v.companyActivity,
           spaceNeeded: v.spaceNeeded,
           phone: v.phone.trim() || undefined,
+          city: v.city || undefined,
         });
         details = { type: "STAND", ...v };
       } else {

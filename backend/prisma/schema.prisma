@@ -47,6 +47,7 @@ model User {
   updatedAt DateTime @updatedAt
 
   registration Registration?
+  events        Event[]
 }
 
 model Registration {
@@ -87,4 +88,182 @@ model Registration {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// =========================================================================
+// Stage 4: analytics + marketing
+// =========================================================================
+
+/// A single analytics event. The shape is intentionally narrow: name (a
+/// short stable string the client agrees on), the screen the user was on,
+/// an optional JSON props bag for everything else, and the same first-touch
+/// UTM fields that the User row carries. `anonymousId` is set when the
+/// user is browsing outside Telegram (or before initData is validated) so
+/// we can still join events into a funnel.
+model Event {
+  id          BigInt   @id @default(autoincrement())
+  anonymousId String?
+  userId      Int?
+  name        String
+  screen      String?
+  props       Json?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmContent  String?
+  utmTerm     String?
+  createdAt   DateTime @default(now())
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([name, createdAt])
+  @@index([userId, createdAt])
+  @@index([screen, createdAt])
+}
+
+/// Marketing follow-up sequence. Replaces the hardcoded text in
+/// followups.ts so the marketing team can edit timings and copy from the
+/// admin panel without a code change. The first iteration keeps the
+/// schedule identical to the original (3 nudge stages + 1 follow-up).
+model Sequence {
+  id          String         @id @default(cuid())
+  key         String         @unique
+  name        String
+  description String?
+  enabled     Boolean        @default(true)
+  steps       SequenceStep[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model SequenceStep {
+  id           String   @id @default(cuid())
+  sequenceId   String
+  /// 1, 2, 3 — order of execution within the sequence.
+  order        Int
+  /// Minutes after the user enters the sequence (or after the previous
+  /// step is dispatched, depending on the engine).
+  afterMinutes Int
+  /// Optional JSON condition (e.g. { "type": "STAND" }) evaluated by the
+  /// workflow engine before sending.
+  condition    Json?
+  textUz       String
+  textRu       String
+  textEn       String
+  /// Whether this step should attach the "open the app" button.
+  cta          Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  sequence     Sequence @relation(fields: [sequenceId], references: [id], onDelete: Cascade)
+
+  @@index([sequenceId, order])
+}
+
+/// Broadcast (a.k.a. rassylka). The admin picks a segment, writes copy,
+/// previews it, and queues it. The dispatcher in services/broadcast.ts
+/// paces messages under Telegram's 30 msg/s limit.
+model Broadcast {
+  id          String                @id @default(cuid())
+  name        String
+  /// JSON segment filter, e.g. { "language": "uz", "leadTier": "HOT" }.
+  segment     Json
+  textUz      String
+  textRu      String
+  textEn      String
+  /// DRAFT | SCHEDULED | RUNNING | DONE | FAILED
+  status      String                @default("DRAFT")
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  totalCount  Int                   @default(0)
+  sentCount   Int                   @default(0)
+  failedCount Int                   @default(0)
+  createdBy   String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  recipients  BroadcastRecipient[]
+}
+
+model BroadcastRecipient {
+  id          String    @id @default(cuid())
+  broadcastId String
+  userId      Int?
+  telegramId  BigInt?
+  /// PENDING | SENT | FAILED | BLOCKED
+  status      String    @default("PENDING")
+  error       String?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  broadcast   Broadcast @relation(fields: [broadcastId], references: [id], onDelete: Cascade)
+
+  @@index([broadcastId, status])
+}
+
+/// Workflow rule. Trigger -> condition -> action(s). Evaluated by the
+/// workflow engine on every scheduler tick. Actions are typed JSON
+/// objects that the engine knows how to execute (send a sequence step,
+/// add a tag, assign a manager, create a CRM task).
+model Workflow {
+  id         String   @id @default(cuid())
+  name       String
+  /// new_lead | drop_off | no_reply_n_days | manual
+  trigger    String
+  enabled    Boolean  @default(true)
+  conditions Json?
+  actions    Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/// Admin users. Hashed passwords, sessions, and audit logs live alongside.
+/// Kept completely separate from the Telegram User model so a leaked
+/// admin password never affects the customer-facing identity.
+model AdminUser {
+  id           String         @id @default(cuid())
+  username     String         @unique
+  passwordHash String
+  /// "admin" | "viewer" — the panel starts with a single role; finer
+  /// RBAC is a Stage 5+ concern.
+  role         String         @default("admin")
+  createdAt    DateTime       @default(now())
+  lastLoginAt  DateTime?
+  sessions     AdminSession[]
+  auditLogs    AuditLog[]
+}
+
+model AdminSession {
+  id          String   @id @default(cuid())
+  adminUserId String
+  /// SHA-256 hash of the session token (raw token never stored).
+  tokenHash   String   @unique
+  userAgent   String?
+  ip          String?
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+}
+
+/// Append-only log of every admin action. Parol/tokenlar hech qachon
+/// yozilmaydi (faqat action, target, meta).
+model AuditLog {
+  id          BigInt    @id @default(autoincrement())
+  adminUserId String?
+  action      String
+  /// Resource id (e.g. lead id, broadcast id).
+  target      String?
+  /// Action-specific metadata (e.g. { from: "WARM", to: "HOT" }).
+  meta        Json?
+  ip          String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+
+  adminUser   AdminUser? @relation(fields: [adminUserId], references: [id], onDelete: SetNull)
+
+  @@index([adminUserId, createdAt])
+  @@index([action, createdAt])
 }

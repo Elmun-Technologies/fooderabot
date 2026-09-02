@@ -106,14 +106,21 @@ button {
 
 .brand {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 8px;
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   color: var(--text-muted);
   padding: 4px 0 22px;
+}
+
+.brand__logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .brand strong {
@@ -388,15 +395,9 @@ button {
   gap: 18px;
 }
 
-.splash__mark {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--primary);
-}
-
-.splash__mark span {
-  color: var(--gold);
+.splash__logo {
+  width: 128px;
+  height: 128px;
 }
 
 .splash__spinner {

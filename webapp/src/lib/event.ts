@@ -114,7 +114,7 @@ export function aggregateByOption(
 }
 
 /** Link used by the "share with friends" button (override with VITE_SHARE_URL). */
-export const SHARE_URL = import.meta.env.VITE_SHARE_URL ?? "https://t.me/FooderaExpoBot";
+export const SHARE_URL = import.meta.env.VITE_SHARE_URL ?? "https://t.me/foodera_2026";
 
 /**
  * Map a real booth's area to the nearest STAND_TYPE_OPTIONS bucket, so

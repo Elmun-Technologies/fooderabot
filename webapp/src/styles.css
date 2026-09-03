@@ -1595,7 +1595,11 @@ img {
 }
 
 .edl-package__cta:hover {
-  background: var(--ink);
+  /* Was --ink (near-black text color) — flattened the navy button to a muddy
+     gray on hover instead of a clear on-brand highlight. --night-2 is the
+     same hue, just a shade lighter, matching how the gold CTA hovers to
+     --gold-2 instead of an unrelated color. */
+  background: var(--night-2);
 }
 
 /* ---------- Why editorial (3 rows, asymmetric) ---------- */
@@ -3075,6 +3079,13 @@ img {
 }
 
 .edl-program__body {
+  /* Must share .edl-program__kind's explicit cell (row 1 / col 3): without
+     this, grid auto-placement skips that occupied cell and drops body into
+     an implicit row 2 starting back at column 1 — under the 52px time
+     column, wrapping every word onto its own line. padding-right leaves
+     room for the kind badge sitting in the same cell's top-right corner. */
+  grid-row: 1;
+  grid-column: 3;
   padding-bottom: var(--space-2);
   padding-right: 84px;
 }

@@ -4,8 +4,9 @@ import { prisma } from "../db";
 import { recordEvent, isValidEventName } from "../services/analytics";
 import { clientIp, makeRateLimiter } from "../lib/rateLimit";
 import { validateInitData } from "../lib/validateInitData";
-import { AlreadyRegisteredError, checkRegistration, submitRegistration } from "../services/registration";
+import { AlreadyRegisteredError, StandUnavailableError, checkRegistration, submitRegistration } from "../services/registration";
 import { getLiveSnapshot } from "../services/liveStats";
+import { getPublicStands } from "../services/stands";
 import { toSubmitBody, validateSubmitBody } from "./validate";
 
 export const webappRouter = Router();
@@ -80,6 +81,28 @@ webappRouter.get("/live", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/webapp/stands — public real floor-plan feed.
+ *
+ * Same trust level as /live: no auth, cheap to poll, cached server-side.
+ * Reuses the /live rate limiter bucket since both are landing-page reads.
+ */
+webappRouter.get("/stands", async (req, res) => {
+  const limit = liveLimiter(clientIp(req));
+  if (limit.limited) {
+    res.setHeader("Retry-After", String(Math.ceil(limit.resetMs / 1000)));
+    return res.status(429).json({ error: "Too many requests" });
+  }
+  try {
+    const stands = await getPublicStands();
+    res.setHeader("cache-control", "public, max-age=15, stale-while-revalidate=30");
+    res.json({ ok: true, stands });
+  } catch (err) {
+    console.error("Failed to load stands", err);
+    res.status(503).json({ error: "Stands unavailable" });
+  }
+});
+
 webappRouter.get("/check", async (req, res) => {
   const validated = getValidatedUser(req);
   if (!validated) return res.status(401).json({ error: "Invalid Telegram init data" });
@@ -108,6 +131,9 @@ webappRouter.post("/submit", async (req, res) => {
   } catch (err) {
     if (err instanceof AlreadyRegisteredError) {
       return res.status(409).json({ error: "Already registered" });
+    }
+    if (err instanceof StandUnavailableError) {
+      return res.status(409).json({ error: "Stand no longer available", code: "STAND_TAKEN" });
     }
     console.error("Failed to submit registration", err);
     res.status(500).json({ error: "Internal error" });

@@ -186,6 +186,27 @@ export interface WorkflowRow {
   createdAt: string;
 }
 
+// =====================================================================
+// Stands (real floor plan)
+// =====================================================================
+
+export type StandStatus = "AVAILABLE" | "REQUESTED" | "BOOKED";
+
+export interface AdminStand {
+  id: string;
+  code: string;
+  zone: string;
+  sqm: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  status: StandStatus;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export function api(): { base: string } {
   return { base: API_BASE };
 }

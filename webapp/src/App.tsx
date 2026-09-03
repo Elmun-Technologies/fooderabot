@@ -143,6 +143,7 @@ export default function App() {
           spaceNeeded: v.spaceNeeded,
           phone: v.phone.trim() || undefined,
           city: v.city || undefined,
+          standCode: v.standCode,
         });
         details = { type: "STAND", ...v };
       } else {
@@ -169,7 +170,9 @@ export default function App() {
           ? t(language, "errorNetwork")
           : err instanceof ApiError && err.code === "ALREADY_REGISTERED"
             ? t(language, "errorAlreadyRegistered")
-            : t(language, "errorGeneric");
+            : err instanceof ApiError && err.code === "STAND_TAKEN"
+              ? t(language, "errorStandTaken")
+              : t(language, "errorGeneric");
       setStep({ name: "error", message, friendly, language, pending: { role, language, values, raw } });
       haptics.error();
       track("submit_error", { role, lang: language, code: err instanceof ApiError ? err.code : "HTTP" });
@@ -284,21 +287,26 @@ export default function App() {
                 <button
                   type="button"
                   className="button button--secondary"
-                  onClick={() =>
+                  onClick={() => {
+                    // A stand-taken race means the exact booth in `pending` is
+                    // gone — carrying it back into the form would just fail
+                    // the same way again, so drop it and let the user pick a
+                    // different one (or leave it to "unsure").
+                    const dropStandCode = (v: StandFormValues): StandFormValues => ({ ...v, standCode: undefined });
                     setStep({
                       name: "form",
                       role: step.pending!.role,
                       language: step.language,
                       initialStand:
                         step.pending!.role === "STAND"
-                          ? ((step.pending!.raw as StandFormValues) ?? (step.pending!.values as StandFormValues))
+                          ? dropStandCode((step.pending!.raw as StandFormValues) ?? (step.pending!.values as StandFormValues))
                           : undefined,
                       initialGuest:
                         step.pending!.role === "GUEST"
                           ? ((step.pending!.raw as GuestFormValues) ?? (step.pending!.values as GuestFormValues))
                           : undefined,
-                    })
-                  }
+                    });
+                  }}
                 >
                   {t(step.language, "editData")}
                 </button>

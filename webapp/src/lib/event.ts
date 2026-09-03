@@ -115,3 +115,16 @@ export function aggregateByOption(
 
 /** Link used by the "share with friends" button (override with VITE_SHARE_URL). */
 export const SHARE_URL = import.meta.env.VITE_SHARE_URL ?? "https://t.me/FooderaExpoBot";
+
+/**
+ * Map a real booth's area to the nearest STAND_TYPE_OPTIONS bucket, so
+ * picking an exact stand on the floor plan (e.g. "C7", 40 m²) still lands
+ * on a sensible pre-selected chip in step 4 of the form. This is a display
+ * convenience only — the exact code + m² are what actually get submitted
+ * (see StandFormValues.standCode).
+ */
+export function standTypeKeyForSqm(sqm: number): (typeof STAND_TYPE_OPTIONS)[number]["key"] {
+  if (sqm >= 24) return "area";
+  if (sqm >= 15) return "premium";
+  return "standard";
+}

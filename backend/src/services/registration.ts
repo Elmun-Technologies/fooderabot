@@ -5,6 +5,7 @@ import { prisma } from "../db";
 import { createLeadForRegistration } from "./amocrm";
 import { computeLeadScore } from "./leadScoring";
 import { invalidateLiveSnapshot } from "./liveStats";
+import { invalidateStandsCache } from "./stands";
 import { onRegistrationCreated } from "./workflow";
 import type { SubmitRegistrationBody } from "../types";
 import type { TelegramWebAppUser } from "../lib/validateInitData";
@@ -45,10 +46,14 @@ export async function checkRegistration(tgUser: TelegramWebAppUser) {
     spaceNeeded: r?.spaceNeeded ?? undefined,
     willAttend: r?.willAttend ?? undefined,
     city: r?.city ?? undefined,
+    standCode: r?.standCode ?? undefined,
   };
 }
 
 export class AlreadyRegisteredError extends Error {}
+/** The chosen booth was requested by someone else (or booked/unknown) between
+ *  the user picking it on the map and submitting the form. */
+export class StandUnavailableError extends Error {}
 
 export async function submitRegistration(tgUser: TelegramWebAppUser, body: SubmitRegistrationBody) {
   const user = await upsertUser(tgUser);
@@ -58,23 +63,40 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
 
   let registration;
   try {
-    registration = await prisma.registration.create({
-      data: {
-        userId: user.id,
-        type: body.type,
-        language: body.language,
-        position: body.position,
-        fullName: body.fullName,
-        phone: body.phone,
-        companyName: body.companyName,
-        companyYears: body.companyYears,
-        companyActivity: body.companyActivity,
-        spaceNeeded: body.spaceNeeded,
-        willAttend: body.willAttend,
-        city: body.city,
-      },
+    registration = await prisma.$transaction(async (tx) => {
+      // Soft-reserve the exact booth first, atomically: only flips
+      // AVAILABLE -> REQUESTED, so two visitors racing for the same booth
+      // never both "win" it. The loser gets a 409 and picks another booth —
+      // better than silently creating a lead against a spot someone else
+      // just claimed. Unknown codes behave the same as "taken" (count 0).
+      if (body.standCode) {
+        const reserved = await tx.stand.updateMany({
+          where: { code: body.standCode, status: "AVAILABLE" },
+          data: { status: "REQUESTED" },
+        });
+        if (reserved.count === 0) throw new StandUnavailableError();
+      }
+
+      return tx.registration.create({
+        data: {
+          userId: user.id,
+          type: body.type,
+          language: body.language,
+          position: body.position,
+          fullName: body.fullName,
+          phone: body.phone,
+          companyName: body.companyName,
+          companyYears: body.companyYears,
+          companyActivity: body.companyActivity,
+          spaceNeeded: body.spaceNeeded,
+          willAttend: body.willAttend,
+          city: body.city,
+          standCode: body.standCode,
+        },
+      });
     });
   } catch (err) {
+    if (err instanceof StandUnavailableError) throw err;
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       throw new AlreadyRegisteredError();
     }
@@ -85,6 +107,7 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
   // a fresh lead has to invalidate the cached snapshot - otherwise the page
   // keeps advertising a number that is already a minute stale.
   invalidateLiveSnapshot();
+  if (body.standCode) invalidateStandsCache();
 
   // Stage-2: compute the lead score and tier right after the row lands.
   // The leads-group message uses these to flag HOT leads and the admin

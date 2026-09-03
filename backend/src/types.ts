@@ -16,4 +16,6 @@ export interface SubmitRegistrationBody {
   willAttend?: boolean;
   /** Stage-2: city the company operates from (STAND only, required). */
   city?: string;
+  /** The exact booth picked on the real floor plan (Stand.code), STAND only, optional. */
+  standCode?: string;
 }

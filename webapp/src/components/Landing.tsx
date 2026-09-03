@@ -3,7 +3,7 @@ import type { Language } from "../i18n";
 import { t } from "../i18n";
 import type { StandFormValues } from "./StandForm";
 import { track } from "../lib/analytics";
-import { EVENT } from "../lib/event";
+import { EVENT, standTypeKeyForSqm } from "../lib/event";
 import { useLiveStats } from "../lib/live";
 import { prefersReducedMotion } from "../lib/motion";
 import { tg } from "../lib/telegram";
@@ -74,6 +74,14 @@ export function Landing({ language, onContinue, onStartStand, apiDown = false }:
     [language, onStartStand],
   );
 
+  const pickStand = useCallback(
+    (stand: { code: string; sqm: number }) => {
+      track("landing_floor_pick", { code: stand.code, sqm: stand.sqm, lang: language });
+      onStartStand({ spaceNeeded: standTypeKeyForSqm(stand.sqm), standCode: stand.code });
+    },
+    [language, onStartStand],
+  );
+
   return (
     <div className={`screen landing edl${prefersReducedMotion() ? "" : " edl--motion"}`} style={{ padding: 0, animation: "none" }}>
       <EdlNav language={language} onPrimary={onContinue} />
@@ -91,7 +99,7 @@ export function Landing({ language, onContinue, onStartStand, apiDown = false }:
       <WhyEditorial language={language} />
       <Program language={language} />
       <Market language={language} />
-      <Floorplan language={language} stats={stats} onPick={pickPackage} />
+      <Floorplan language={language} onPick={pickStand} />
       <Venue language={language} />
       <Audience language={language} stats={stats} onPrimary={onContinue} />
       <FAQ language={language} onAsk={onContact} />

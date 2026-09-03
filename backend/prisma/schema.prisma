@@ -18,6 +18,17 @@ enum RegistrationStatus {
   FAILED
 }
 
+enum StandStatus {
+  /// Open — nobody has applied for it yet.
+  AVAILABLE
+  /// Someone submitted a STAND application naming this exact booth. Not a
+  /// hard hold (the organiser confirms manually, same as every other lead),
+  /// but it stops the map from inviting a second person onto the same spot.
+  REQUESTED
+  /// Organiser-confirmed as sold, via the admin panel.
+  BOOKED
+}
+
 model User {
   id           Int      @id @default(autoincrement())
   telegramId   BigInt   @unique
@@ -86,8 +97,40 @@ model Registration {
   followUpStage  Int       @default(0)
   followUpSentAt DateTime?
 
+  // The exact booth picked on the real floor plan (Stand.code), STAND only.
+  // Soft reference on purpose — see Stand below — so a stand can be
+  // re-numbered or removed without a migration touching leads.
+  standCode String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// One physical booth on the real FOODERA EXPO 2026 floor plan. Seeded from
+/// the organiser-supplied floor plan PDF (see backend/scripts/seedStands.ts);
+/// geometry is in the PDF's own point space (1590 x 1126) so the webapp can
+/// use it directly as an SVG viewBox over the floor-plan image.
+///
+/// No company/tenant name is stored here on purpose: the public map must
+/// never leak who is next to whom before contracts are signed, so it only
+/// ever answers "available / requested / booked" for a code.
+model Stand {
+  id     String @id @default(cuid())
+  code   String @unique
+  zone   String
+  sqm    Int
+  x      Float
+  y      Float
+  w      Float
+  h      Float
+  status StandStatus @default(AVAILABLE)
+  note   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([zone])
+  @@index([status])
 }
 
 // =========================================================================

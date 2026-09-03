@@ -1,5 +1,7 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import { prisma } from "../db";
+import { invalidateStandsCache } from "../services/stands";
 import {
   SESSION_COOKIE,
   SESSION_TTL,
@@ -775,5 +777,118 @@ adminRouter.delete("/workflows/:id", async (req, res) => {
   if (!wf) return res.status(404).json({ error: "Workflow not found" });
   await prisma.workflow.delete({ where: { id } });
   await writeAudit(user.id, "workflow_delete", req, id);
+  res.json({ ok: true });
+});
+
+// --------------------------------------------------------------------------
+// Stands — the real floor plan (see data/expoStands.ts for provenance).
+//
+// The auto-extracted seed only knows geometry, never occupancy: this is
+// where the organiser marks booths REQUESTED-by-a-lead as actually BOOKED
+// (or reverts a stale REQUESTED back to AVAILABLE), and fills in the
+// handful of codes the PDF extraction couldn't confidently read.
+// --------------------------------------------------------------------------
+
+const STAND_STATUSES = ["AVAILABLE", "REQUESTED", "BOOKED"] as const;
+
+adminRouter.get("/stands", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const stands = await prisma.stand.findMany({ orderBy: [{ zone: "asc" }, { code: "asc" }] });
+  res.json({ items: stands });
+});
+
+adminRouter.post("/stands", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const body = (req.body ?? {}) as {
+    code?: string;
+    zone?: string;
+    sqm?: number;
+    x?: number;
+    y?: number;
+    w?: number;
+    h?: number;
+    note?: string;
+  };
+  const code = (body.code ?? "").trim();
+  if (!code) return res.status(400).json({ error: "code is required" });
+  const zone = (body.zone ?? code[0] ?? "").trim();
+  const nums = [body.sqm, body.x, body.y, body.w, body.h];
+  if (nums.some((n) => typeof n !== "number" || !Number.isFinite(n))) {
+    return res.status(400).json({ error: "sqm, x, y, w, h must all be numbers" });
+  }
+  try {
+    const created = await prisma.stand.create({
+      data: {
+        code,
+        zone,
+        sqm: body.sqm!,
+        x: body.x!,
+        y: body.y!,
+        w: body.w!,
+        h: body.h!,
+        note: body.note?.trim() || undefined,
+      },
+    });
+    invalidateStandsCache();
+    await writeAudit(user.id, "stand_create", req, created.code);
+    res.json(created);
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      return res.status(409).json({ error: `Stand ${code} already exists` });
+    }
+    throw err;
+  }
+});
+
+adminRouter.post("/stands/:code", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const code = String(req.params.code);
+  const stand = await prisma.stand.findUnique({ where: { code } });
+  if (!stand) return res.status(404).json({ error: "Stand not found" });
+
+  const body = (req.body ?? {}) as {
+    status?: string;
+    zone?: string;
+    sqm?: number;
+    x?: number;
+    y?: number;
+    w?: number;
+    h?: number;
+    note?: string | null;
+  };
+  if (body.status !== undefined && !STAND_STATUSES.includes(body.status as any)) {
+    return res.status(400).json({ error: `status must be one of: ${STAND_STATUSES.join(", ")}` });
+  }
+
+  const updated = await prisma.stand.update({
+    where: { code },
+    data: {
+      status: (body.status as (typeof STAND_STATUSES)[number] | undefined) ?? undefined,
+      zone: body.zone?.trim() || undefined,
+      sqm: typeof body.sqm === "number" ? body.sqm : undefined,
+      x: typeof body.x === "number" ? body.x : undefined,
+      y: typeof body.y === "number" ? body.y : undefined,
+      w: typeof body.w === "number" ? body.w : undefined,
+      h: typeof body.h === "number" ? body.h : undefined,
+      note: body.note === undefined ? undefined : body.note,
+    },
+  });
+  invalidateStandsCache();
+  await writeAudit(user.id, "stand_update", req, code, { status: updated.status });
+  res.json(updated);
+});
+
+adminRouter.delete("/stands/:code", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const code = String(req.params.code);
+  const stand = await prisma.stand.findUnique({ where: { code } });
+  if (!stand) return res.status(404).json({ error: "Stand not found" });
+  await prisma.stand.delete({ where: { code } });
+  invalidateStandsCache();
+  await writeAudit(user.id, "stand_delete", req, code);
   res.json({ ok: true });
 });

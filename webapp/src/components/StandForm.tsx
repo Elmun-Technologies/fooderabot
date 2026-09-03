@@ -26,6 +26,8 @@ export interface StandFormValues {
   phone: string;
   /** Stage-2: home city of the company (one of CITY_OPTIONS keys). */
   city: string;
+  /** The exact booth picked on the real floor plan (e.g. "A7"), if any. */
+  standCode?: string;
 }
 
 const EMPTY: StandFormValues = {
@@ -37,6 +39,7 @@ const EMPTY: StandFormValues = {
   spaceNeeded: "",
   phone: "",
   city: "",
+  standCode: undefined,
 };
 
 const TOTAL_STEPS = 4;
@@ -148,7 +151,13 @@ export function StandForm({
   });
 
   return (
-    <Screen step={step} totalSteps={TOTAL_STEPS} onBack={back} heading={t(language, "formTitleStand")}>
+    <Screen
+      step={step}
+      totalSteps={TOTAL_STEPS}
+      onBack={back}
+      heading={t(language, "formTitleStand")}
+      subheading={values.standCode ? `${t(language, "floorSelected")}: ${values.standCode}` : undefined}
+    >
       {step === 1 ? (
         <div className="form-step">
           <p className="question">{t(language, "categoryTitle")}</p>

@@ -4,7 +4,7 @@ import { startBroadcastScheduler } from "./services/broadcast";
 import { startWorkflowScheduler } from "./services/workflow";
 import { createServer } from "./api/server";
 import { config } from "./config";
-import { seedDefaultSequences, seedDefaultWorkflows } from "./services/seed";
+import { seedDefaultSequences, seedDefaultWorkflows, seedExpoStands } from "./services/seed";
 
 const skipBot = process.env.SKIP_BOT === "1" || process.env.SKIP_BOT === "true";
 
@@ -17,6 +17,11 @@ async function main() {
   // Stage 7: seed the default marketing workflows (idempotent).
   await seedDefaultWorkflows().catch((err) => {
     console.error("Failed to seed default workflows", err);
+  });
+
+  // Real floor-plan stands (idempotent, insert-only — see seedExpoStands).
+  await seedExpoStands().catch((err) => {
+    console.error("Failed to seed expo stands", err);
   });
 
   const app = createServer();

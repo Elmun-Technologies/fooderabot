@@ -42,6 +42,7 @@ function buildNote(r: RegistrationForCrm): string {
     r.companyActivity ? `Faoliyat turi: ${r.companyActivity}` : null,
     // New values are booth-type labels ("Premium stend · 18 m²"); legacy rows are plain numbers.
     r.spaceNeeded ? `Stend turi: ${/m²|m2/i.test(r.spaceNeeded) ? r.spaceNeeded : `${r.spaceNeeded} m²`}` : null,
+    r.standCode ? `Tanlangan joy (xaritada): ${r.standCode}` : null,
     r.willAttend !== undefined ? `Tadbirga kelishni tasdiqladi: ${r.willAttend ? "Ha" : "Yo'q"}` : null,
     r.telegramUsername ? `Telegram: @${r.telegramUsername}` : `Telegram ID: ${r.telegramId}`,
     r.utmSource ? `UTM source: ${r.utmSource}` : null,

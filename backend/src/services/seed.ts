@@ -1,4 +1,5 @@
 import { prisma } from "../db";
+import { EXPO_STANDS } from "../data/expoStands";
 
 /**
  * Idempotent seed for the marketing sequences.
@@ -184,4 +185,34 @@ export async function seedDefaultWorkflows(): Promise<void> {
     });
     console.log(`Seeded workflow "${s.name}" (${s.trigger})`);
   }
+}
+
+/**
+ * Idempotent seed for the real floor-plan stands (see data/expoStands.ts
+ * for where this geometry comes from and its known gaps).
+ *
+ * Insert-only by design: an admin may have since corrected a stand's
+ * status, geometry, or note from the panel, and a code once removed from
+ * the source array (a duplicate, a re-numbered booth) should stay in the
+ * DB rather than silently vanish on the next deploy. Re-running this only
+ * ever adds codes that don't exist yet.
+ */
+export async function seedExpoStands(): Promise<void> {
+  const existing = await prisma.stand.findMany({ select: { code: true } });
+  const known = new Set(existing.map((s) => s.code));
+  const missing = EXPO_STANDS.filter((s) => !known.has(s.code));
+  if (missing.length === 0) return;
+
+  await prisma.stand.createMany({
+    data: missing.map((s) => ({
+      code: s.code,
+      zone: s.zone,
+      sqm: s.sqm,
+      x: s.x,
+      y: s.y,
+      w: s.w,
+      h: s.h,
+    })),
+  });
+  console.log(`Seeded ${missing.length} expo stand(s)`);
 }

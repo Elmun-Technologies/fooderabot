@@ -19,7 +19,7 @@ export class ApiError extends Error {
   /** HTTP status; 0 means the request never got a response (network/timeout). */
   status: number;
   /** Stable machine-readable code the UI can map to a friendly message. */
-  code: "NETWORK" | "BAD_RESPONSE" | "ALREADY_REGISTERED" | "HTTP";
+  code: "NETWORK" | "BAD_RESPONSE" | "ALREADY_REGISTERED" | "STAND_TAKEN" | "HTTP";
   constructor(code: ApiError["code"], status: number, message: string) {
     super(message);
     this.code = code;
@@ -48,6 +48,17 @@ async function demoRequest(path: string, init?: RequestInit): Promise<unknown> {
     if (demoRegistration) throw new ApiError("ALREADY_REGISTERED", 409, "Already registered");
     demoRegistration = JSON.parse(String(init.body)) as Record<string, unknown>;
     return { ok: true, id: 1 };
+  }
+  if (path === "/stands") {
+    // A handful of stands so the map is clickable while poking around
+    // outside Telegram, without needing a live backend.
+    const demoStands: PublicStand[] = [
+      { code: "A7", zone: "A", sqm: 9, x: 240.0, y: 540.9, w: 43.1, h: 29.1, status: "AVAILABLE" },
+      { code: "A9", zone: "A", sqm: 9, x: 242.1, y: 432.4, w: 42.8, h: 41.0, status: "REQUESTED" },
+      { code: "C7", zone: "C", sqm: 40, x: 513.6, y: 399.6, w: 80.3, h: 70.6, status: "BOOKED" },
+      { code: "H1", zone: "H", sqm: 9, x: 248.1, y: 193.0, w: 44.3, h: 30.2, status: "AVAILABLE" },
+    ];
+    return { ok: true, stands: demoStands };
   }
   throw new ApiError("HTTP", 404, `No such endpoint: ${path}`);
 }
@@ -79,8 +90,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   // must fail loudly instead of silently "succeeding" and losing the lead.
   const data = await res.json().catch(() => null);
   if (!res.ok || data === null || typeof data !== "object") {
-    const message = (data as { error?: string } | null)?.error ?? `Request failed with status ${res.status}`;
-    throw new ApiError(res.status === 409 ? "ALREADY_REGISTERED" : "BAD_RESPONSE", res.status, message);
+    const body = data as { error?: string; code?: string } | null;
+    const message = body?.error ?? `Request failed with status ${res.status}`;
+    const code = res.status === 409 ? (body?.code === "STAND_TAKEN" ? "STAND_TAKEN" : "ALREADY_REGISTERED") : "BAD_RESPONSE";
+    throw new ApiError(code, res.status, message);
   }
   return data as T;
 }
@@ -125,6 +138,8 @@ export interface SubmitPayload {
   phone?: string;
   /** Stage-2: city the company operates from (STAND only). */
   city?: string;
+  /** The exact booth picked on the real floor plan (Stand.code), STAND only. */
+  standCode?: string;
 }
 
 export function submitRegistration(payload: SubmitPayload) {
@@ -132,4 +147,24 @@ export function submitRegistration(payload: SubmitPayload) {
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+/**
+ * Real floor-plan stand, as published by GET /api/webapp/stands. No
+ * company/tenant name — the map only ever answers "can I apply for this
+ * one", never who is next to whom.
+ */
+export interface PublicStand {
+  code: string;
+  zone: string;
+  sqm: number;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  status: "AVAILABLE" | "REQUESTED" | "BOOKED";
+}
+
+export function getStands() {
+  return request<{ ok: true; stands: PublicStand[] }>("/stands");
 }

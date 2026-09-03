@@ -39,6 +39,10 @@ export function validateSubmitBody(body: unknown): string | null {
 
   if (b.companyName !== undefined && typeof b.companyName !== "string") return "Invalid company name";
 
+  if (b.standCode !== undefined && (typeof b.standCode !== "string" || b.standCode.trim().length > 20)) {
+    return "Invalid stand code";
+  }
+
   return null;
 }
 
@@ -56,5 +60,6 @@ export function toSubmitBody(body: unknown): SubmitRegistrationBody {
     spaceNeeded: b.spaceNeeded ? String(b.spaceNeeded).trim() : undefined,
     willAttend: typeof b.willAttend === "boolean" ? b.willAttend : undefined,
     city: typeof b.city === "string" && b.city.trim() ? b.city.trim() : undefined,
+    standCode: typeof b.standCode === "string" && b.standCode.trim() ? b.standCode.trim() : undefined,
   };
 }

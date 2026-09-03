@@ -5,12 +5,14 @@ import {
   adminCall,
   AdminError,
   type AdminLead,
+  type AdminStand,
   type AdminUser,
   type AuditEntry,
   type BroadcastRow,
   type BroadcastSegment,
   type DashboardData,
   type SequenceRow,
+  type StandStatus,
   type WorkflowRow,
   type WorkflowTrigger,
   type WorkflowAction,
@@ -37,11 +39,13 @@ type Section =
   | { name: "sequences" }
   | { name: "workflows" }
   | { name: "broadcasts" }
+  | { name: "stands" }
   | { name: "audit" };
 
 const SECTIONS: { key: Section["name"]; labelKey: import("../i18n").TranslationKey }[] = [
   { key: "dashboard", labelKey: "adminNavDashboard" },
   { key: "leads", labelKey: "adminNavLeads" },
+  { key: "stands", labelKey: "adminNavStands" },
   { key: "sequences", labelKey: "adminNavSequences" },
   { key: "workflows", labelKey: "adminNavWorkflows" },
   { key: "broadcasts", labelKey: "adminNavBroadcasts" },
@@ -54,7 +58,15 @@ function parseHash(): Section {
     const id = Number(h.slice(5));
     if (Number.isFinite(id)) return { name: "lead", id };
   }
-  if (h === "leads" || h === "sequences" || h === "workflows" || h === "audit" || h === "dashboard" || h === "broadcasts") {
+  if (
+    h === "leads" ||
+    h === "sequences" ||
+    h === "workflows" ||
+    h === "audit" ||
+    h === "dashboard" ||
+    h === "broadcasts" ||
+    h === "stands"
+  ) {
     return { name: h } as Section;
   }
   return { name: "dashboard" };
@@ -216,6 +228,7 @@ function Shell({ me, section, onSignOut }: { me: AdminUser; section: Section; on
           {section.name === "sequences" ? <Sequences /> : null}
           {section.name === "workflows" ? <Workflows /> : null}
           {section.name === "broadcasts" ? <Broadcasts /> : null}
+          {section.name === "stands" ? <Stands /> : null}
           {section.name === "audit" ? <Audit /> : null}
         </main>
       </div>
@@ -557,6 +570,205 @@ function formatUtm(utm: AdminLead["utm"]): string {
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : "—";
 }
+
+// ---------- Stands (real floor plan) ----------
+
+const STAND_STATUSES: StandStatus[] = ["AVAILABLE", "REQUESTED", "BOOKED"];
+
+const EMPTY_NEW_STAND = { code: "", zone: "", sqm: "", x: "", y: "", w: "", h: "" };
+
+/**
+ * Real floor-plan stands: the seed (backend/src/data/expoStands.ts) is a
+ * best-effort auto-read of the organiser's PDF, so this is where that gets
+ * corrected — mark a booth REQUESTED-by-a-lead as actually BOOKED, revert a
+ * stale REQUESTED back to AVAILABLE, or add the handful of codes the PDF
+ * extraction couldn't confidently read (geometry is in the source PDF's own
+ * point space, page size 1590 x 1126 — open the PDF/floorplan.png at the
+ * same scale to read off x/y/w/h for a new one).
+ */
+function Stands() {
+  const language: Language = "uz";
+  const [stands, setStands] = useState<AdminStand[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [zoneFilter, setZoneFilter] = useState<string>("");
+  const [savingCode, setSavingCode] = useState<string | null>(null);
+  const [newStand, setNewStand] = useState(EMPTY_NEW_STAND);
+  const [addError, setAddError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await adminCall<{ items: AdminStand[] }>("/stands");
+      setStands(data.items);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function setStatus(code: string, status: StandStatus) {
+    setSavingCode(code);
+    try {
+      const updated = await adminCall<AdminStand>(`/stands/${encodeURIComponent(code)}`, { method: "POST", body: { status } });
+      setStands((prev) => (prev ? prev.map((s) => (s.code === code ? updated : s)) : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSavingCode(null);
+    }
+  }
+
+  async function removeStand(code: string) {
+    if (!window.confirm(`${code}?`)) return;
+    setSavingCode(code);
+    try {
+      await adminCall<{ ok: true }>(`/stands/${encodeURIComponent(code)}`, { method: "DELETE" });
+      setStands((prev) => (prev ? prev.filter((s) => s.code !== code) : prev));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setSavingCode(null);
+    }
+  }
+
+  async function addStand(e: React.FormEvent) {
+    e.preventDefault();
+    setAddError(null);
+    const code = newStand.code.trim();
+    const zone = newStand.zone.trim() || code[0] || "";
+    const nums = [newStand.sqm, newStand.x, newStand.y, newStand.w, newStand.h].map(Number);
+    if (!code || nums.some((n) => !Number.isFinite(n))) {
+      setAddError(t(language, "adminStandsAddInvalid"));
+      return;
+    }
+    setAdding(true);
+    try {
+      const created = await adminCall<AdminStand>("/stands", {
+        method: "POST",
+        body: { code, zone, sqm: nums[0], x: nums[1], y: nums[2], w: nums[3], h: nums[4] },
+      });
+      setStands((prev) => (prev ? [...prev, created] : [created]));
+      setNewStand(EMPTY_NEW_STAND);
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  if (error && !stands) {
+    return <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div>;
+  }
+  if (!stands) {
+    return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
+  }
+
+  const zones = [...new Set(stands.map((s) => s.zone))].sort();
+  const visible = zoneFilter ? stands.filter((s) => s.zone === zoneFilter) : stands;
+  const counts = STAND_STATUSES.map((status) => ({ status, count: stands.filter((s) => s.status === status).length }));
+
+  return (
+    <div>
+      <h1 className="adm__page-title">{t(language, "adminStandsTitle")}</h1>
+
+      <div className="adm__kpis">
+        {counts.map(({ status, count }) => (
+          <Kpi key={status} label={t(language, STAND_STATUS_LABEL_KEY[status])} value={count} />
+        ))}
+      </div>
+
+      <div className="adm__toolbar">
+        <select className="adm__input" style={{ width: "auto" }} value={zoneFilter} onChange={(e) => setZoneFilter(e.target.value)}>
+          <option value="">{t(language, "adminStandsAllZones")}</option>
+          {zones.map((z) => (
+            <option key={z} value={z}>
+              {z}
+            </option>
+          ))}
+        </select>
+        <span style={{ color: "var(--ink-muted)" }}>{visible.length} ta</span>
+      </div>
+
+      {error ? <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div> : null}
+
+      <table className="adm__table">
+        <thead>
+          <tr>
+            <th>{t(language, "adminStandsCode")}</th>
+            <th>{t(language, "adminStandsZone")}</th>
+            <th>{t(language, "adminStandsSqm")}</th>
+            <th>{t(language, "adminStandsStatus")}</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {visible.map((s) => (
+            <tr key={s.code}>
+              <td><b>{s.code}</b></td>
+              <td>{s.zone}</td>
+              <td>{s.sqm} m²</td>
+              <td>
+                <select
+                  className="adm__input"
+                  style={{ width: "auto" }}
+                  value={s.status}
+                  disabled={savingCode === s.code}
+                  onChange={(e) => void setStatus(s.code, e.target.value as StandStatus)}
+                >
+                  {STAND_STATUSES.map((status) => (
+                    <option key={status} value={status}>
+                      {t(language, STAND_STATUS_LABEL_KEY[status])}
+                    </option>
+                  ))}
+                </select>
+              </td>
+              <td>
+                <button
+                  className="adm__btn adm__btn--secondary"
+                  style={{ width: "auto", padding: "6px 12px" }}
+                  disabled={savingCode === s.code}
+                  onClick={() => void removeStand(s.code)}
+                >
+                  {t(language, "adminStandsDelete")}
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <section className="adm__panel" style={{ marginTop: 24 }}>
+        <h2 className="adm__panel-title">{t(language, "adminStandsAddTitle")}</h2>
+        <form onSubmit={addStand} style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "flex-end" }}>
+          {(["code", "zone", "sqm", "x", "y", "w", "h"] as const).map((field) => (
+            <div className="adm__field" key={field} style={{ width: 90 }}>
+              <span className="adm__field-label">{field}</span>
+              <input
+                className="adm__input"
+                value={newStand[field]}
+                onChange={(e) => setNewStand((prev) => ({ ...prev, [field]: e.target.value }))}
+              />
+            </div>
+          ))}
+          <button className="adm__btn" style={{ width: "auto", padding: "10px 20px" }} disabled={adding} type="submit">
+            {t(language, "adminStandsAddCta")}
+          </button>
+        </form>
+        {addError ? <p style={{ color: "var(--danger, #c0392b)", fontSize: 13, marginTop: 8 }}>{addError}</p> : null}
+      </section>
+    </div>
+  );
+}
+
+const STAND_STATUS_LABEL_KEY: Record<StandStatus, import("../i18n").TranslationKey> = {
+  AVAILABLE: "floorFree",
+  REQUESTED: "floorRequested",
+  BOOKED: "floorTaken",
+};
 
 // ---------- Sequences ----------
 

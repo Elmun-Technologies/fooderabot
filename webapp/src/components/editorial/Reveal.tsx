@@ -1,4 +1,4 @@
-import type { CSSProperties, PropsWithChildren } from "react";
+import { Fragment, type CSSProperties, type PropsWithChildren } from "react";
 import { useInView } from "../../lib/useInView";
 
 interface RevealProps {
@@ -63,10 +63,17 @@ export function RevealWords({ text, className = "", step = 45, tag = "h2" }: Rev
       aria-label={text}
     >
       {words.map((w, i) => (
-        <span className="edl__word" key={`${w}-${i}`} style={{ animationDelay: `${i * step}ms` }}>
-          <span aria-hidden="true">{w}</span>
+        // The space must be a sibling of .edl__word, not a child: that span is
+        // display:inline-block for the mask animation, and a browser collapses
+        // trailing whitespace at the end of an inline-block's own inline
+        // formatting context — a space nested inside it silently vanishes,
+        // which is what was gluing every word in the headline together.
+        <Fragment key={`${w}-${i}`}>
+          <span className="edl__word" style={{ animationDelay: `${i * step}ms` }}>
+            <span aria-hidden="true">{w}</span>
+          </span>
           {i < words.length - 1 ? " " : ""}
-        </span>
+        </Fragment>
       ))}
     </Tag>
   );

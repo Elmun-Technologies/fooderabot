@@ -102,6 +102,13 @@ model Registration {
   // re-numbered or removed without a migration touching leads.
   standCode String?
 
+  // Leads-group (Telegram) delivery observability. groupNotifiedAt is set
+  // when the lead message actually reached the group; groupNotifyError
+  // holds the last failure reason so the admin can see (and resend)
+  // leads the team never saw in the group chat.
+  groupNotifiedAt  DateTime?
+  groupNotifyError String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

@@ -283,6 +283,8 @@ adminRouter.get("/leads", async (req, res) => {
       leadTier: r.leadTier,
       status: r.status,
       amoLeadId: r.amoLeadId,
+      groupNotifiedAt: r.groupNotifiedAt,
+      groupNotifyError: r.groupNotifyError,
       createdAt: r.createdAt,
       user: {
         telegramId: r.user.telegramId.toString(),
@@ -311,6 +313,7 @@ adminRouter.get("/leads.csv", async (req, res) => {
   });
   const header = [
     "id", "createdAt", "type", "language", "leadScore", "leadTier", "status",
+    "groupNotifiedAt", "groupNotifyError",
     "fullName", "position", "phone", "companyName", "companyYears", "companyActivity",
     "spaceNeeded", "city", "willAttend", "telegramId", "telegramUsername",
     "utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term",
@@ -326,6 +329,8 @@ adminRouter.get("/leads.csv", async (req, res) => {
       r.leadScore,
       r.leadTier ?? "",
       r.status,
+      r.groupNotifiedAt ? r.groupNotifiedAt.toISOString() : "",
+      r.groupNotifyError ?? "",
       r.fullName,
       r.position,
       r.phone ?? "",
@@ -374,17 +379,19 @@ adminRouter.get("/leads/:id", async (req, res) => {
     companyActivity: r.companyActivity,
     spaceNeeded: r.spaceNeeded,
     willAttend: r.willAttend,
-    city: r.city,
-    leadScore: r.leadScore,
-    leadTier: r.leadTier,
-    status: r.status,
-    amoLeadId: r.amoLeadId,
-    createdAt: r.createdAt,
-    user: {
-      telegramId: r.user.telegramId.toString(),
-      username: r.user.username,
-      firstName: r.user.firstName,
-    },
+      city: r.city,
+      leadScore: r.leadScore,
+      leadTier: r.leadTier,
+      status: r.status,
+      amoLeadId: r.amoLeadId,
+      groupNotifiedAt: r.groupNotifiedAt,
+      groupNotifyError: r.groupNotifyError,
+      createdAt: r.createdAt,
+      user: {
+        telegramId: r.user.telegramId.toString(),
+        username: r.user.username,
+        firstName: r.user.firstName,
+      },
     utm: {
       source: r.user.utmSource,
       medium: r.user.utmMedium,
@@ -393,6 +400,51 @@ adminRouter.get("/leads/:id", async (req, res) => {
       term: r.user.utmTerm,
     },
   });
+});
+
+// --------------------------------------------------------------------------
+// Leads group delivery — resend a lead that never reached the group
+// --------------------------------------------------------------------------
+//
+// A failed notification at submission time is persisted on the row
+// (groupNotifyError), so this endpoint is how the team recovers a lead
+// the group chat never saw. The message is rebuilt from the stored row,
+// exactly like the automatic one.
+
+adminRouter.post("/leads/:id/notify-group", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  const id = Number(req.params.id);
+  if (!Number.isFinite(id)) return res.status(400).json({ error: "Invalid id" });
+
+  const registration: any = await prisma.registration.findUnique({
+    where: { id },
+    include: { user: true },
+  });
+  if (!registration) return res.status(404).json({ error: "Not found" });
+
+  if (!config.leadsGroupChatId) {
+    return res.status(400).json({ error: "LEADS_GROUP_CHAT_ID sozlanmagan" });
+  }
+
+  try {
+    await notifyLeadsGroup(registration, registration.user);
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: { groupNotifiedAt: new Date(), groupNotifyError: null },
+    });
+    await writeAudit(user.id, "lead_group_notify", req, String(registration.id), { ok: true });
+    res.json({ ok: true });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("LEADS_GROUP_NOTIFY_FAILED (resend):", message);
+    await prisma.registration.update({
+      where: { id: registration.id },
+      data: { groupNotifyError: message.slice(0, 1000) },
+    });
+    await writeAudit(user.id, "lead_group_notify", req, String(registration.id), { ok: false, error: message });
+    res.status(502).json({ error: message });
+  }
 });
 
 /** Escape a single CSV cell per RFC 4180. */
@@ -891,4 +943,53 @@ adminRouter.delete("/stands/:code", async (req, res) => {
   invalidateStandsCache();
   await writeAudit(user.id, "stand_delete", req, code);
   res.json({ ok: true });
+});
+
+// --------------------------------------------------------------------------
+// Leads group diagnostics
+// --------------------------------------------------------------------------
+//
+// The leads-group delivery used to fail silently (the registration
+// succeeds, the group just never gets the message). This section makes
+// the pipeline observable from the admin panel:
+//
+//   GET  /leads-group      -> read-only: config + getMe + getChat
+//   POST /leads-group/test -> same, plus a real test message posted into
+//                             the group, so "does it actually arrive?"
+//                             gets a definitive answer.
+//
+// Both return a structured LeadsGroupDiagnosis with a plain-language
+// hint (uz + en) describing what to fix.
+
+import { diagnoseLeadsGroup, notifyLeadsGroup } from "../bot/leadsGroup";
+import { config } from "../config";
+
+adminRouter.get("/leads-group", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  try {
+    const result = await diagnoseLeadsGroup({ sendTest: false });
+    res.json(result);
+  } catch (err: any) {
+    console.error("LEADS_GROUP_DIAGNOSIS_FAILED (get):", err instanceof Error ? err.message : String(err));
+    res.status(500).json({ error: err?.message ?? "diagnosis failed" });
+  }
+});
+
+adminRouter.post("/leads-group/test", async (req, res) => {
+  const user = await requireAdmin(req, res);
+  if (!user) return;
+  try {
+    const result = await diagnoseLeadsGroup({ sendTest: true });
+    await writeAudit(user.id, "leads_group_test", req, config.leadsGroupChatId ?? null, {
+      ok: result.sendOk,
+      failedAt: result.failedAt,
+      error: result.error,
+    });
+    if (!result.sendOk) console.error("LEADS_GROUP_TEST_FAILED:", result.error, `hint: ${result.hintEn}`);
+    res.json(result);
+  } catch (err: any) {
+    console.error("LEADS_GROUP_DIAGNOSIS_FAILED (test):", err instanceof Error ? err.message : String(err));
+    res.status(500).json({ error: err?.message ?? "diagnosis failed" });
+  }
 });

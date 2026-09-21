@@ -916,3 +916,96 @@
   align-items: center;
   gap: 12px;
 }
+
+/* ---------- Leads group diagnostics ---------- */
+
+.adm__group-steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-3);
+}
+
+.adm__group-step {
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+
+.adm__group-step--ok {
+  border-left-color: var(--success);
+}
+
+.adm__group-step--broken {
+  border-left-color: #c0392b;
+  background: rgba(192, 57, 43, 0.05);
+}
+
+.adm__group-step-head {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.adm__group-step--ok .adm__group-step-head {
+  color: var(--success);
+}
+
+.adm__group-step--broken .adm__group-step-head {
+  color: #c0392b;
+}
+
+.adm__group-step-value {
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+  margin-top: 4px;
+  word-break: break-word;
+}
+
+.adm__group-banner {
+  margin-top: var(--space-4);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  font-size: var(--fs-sm);
+  color: var(--ink);
+}
+
+.adm__group-banner--ok {
+  border: 1px solid var(--success);
+  background: rgba(29, 138, 75, 0.07);
+}
+
+.adm__group-banner--err {
+  border: 1px solid #c0392b;
+  background: rgba(192, 57, 43, 0.06);
+}
+
+.adm__group-hint {
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+
+.adm__list--numbered {
+  list-style: decimal;
+  margin: 0;
+  padding-left: 22px;
+  font-size: var(--fs-sm);
+  color: var(--ink-muted);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.adm__list--numbered code {
+  font-size: var(--fs-sm);
+  background: var(--paper-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  color: var(--ink);
+}

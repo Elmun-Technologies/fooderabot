@@ -148,9 +148,31 @@ export async function submitRegistration(tgUser: TelegramWebAppUser, body: Submi
     console.error("Failed to send Telegram confirmation", err);
   });
 
-  await notifyLeadsGroup(registration, user).catch((err) => {
-    console.error("Failed to notify leads group", err);
-  });
+  // Persist the group-delivery outcome so the admin panel can show which
+  // leads never reached the group chat and offer a resend (see the
+  // admin "Guruh" column). The row update must never break the response.
+  await notifyLeadsGroup(registration, user)
+    .then(() =>
+      prisma.registration
+        .update({
+          where: { id: registration.id },
+          data: { groupNotifiedAt: new Date(), groupNotifyError: null },
+        })
+        .catch(() => undefined),
+    )
+    .catch(async (err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      // The error message already carries chat_id + Telegram's
+      // description (notifyLeadsGroup re-throws with context) — log the
+      // whole thing so "guruhga xabar kelmayapti" is greppable in `fly logs`.
+      console.error("LEADS_GROUP_NOTIFY_FAILED:", message);
+      await prisma.registration
+        .update({
+          where: { id: registration.id },
+          data: { groupNotifyError: message.slice(0, 1000) },
+        })
+        .catch(() => undefined);
+    });
 
   // Stage 7: fire workflow engine (new_lead + lead_hot triggers).
   // Fire-and-forget — workflow errors must never block the response.

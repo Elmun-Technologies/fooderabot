@@ -83,6 +83,10 @@ export interface AdminLead {
   leadTier: string | null;
   status: "PENDING" | "SYNCED" | "FAILED";
   amoLeadId: number | null;
+  /** Leads-group (Telegram) delivery: when the lead message reached the group. */
+  groupNotifiedAt: string | null;
+  /** Last failure reason for the group delivery (null when delivered/never failed). */
+  groupNotifyError: string | null;
   createdAt: string;
   user: { telegramId: string; username: string | null; firstName: string | null };
   utm: { source: string | null; medium: string | null; campaign: string | null; content: string | null; term: string | null };
@@ -205,6 +209,23 @@ export interface AdminStand {
   note: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// =====================================================================
+// Leads group diagnostics (admin panel "Telegram guruhi" section)
+// =====================================================================
+
+export interface LeadsGroupDiagnosis {
+  configured: boolean;
+  chatId: string | null;
+  bot: { id: number; username: string; firstName: string } | null;
+  chat: { title: string; type: string; memberCount: number | null } | null;
+  /** true only when a test message was actually delivered to the group. */
+  sendOk: boolean;
+  failedAt: "not_configured" | "get_me" | "get_chat" | "send" | null;
+  error: string | null;
+  hintUz: string | null;
+  hintEn: string | null;
 }
 
 export function api(): { base: string } {

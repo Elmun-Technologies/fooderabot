@@ -11,6 +11,7 @@ import {
   type BroadcastRow,
   type BroadcastSegment,
   type DashboardData,
+  type LeadsGroupDiagnosis,
   type SequenceRow,
   type StandStatus,
   type WorkflowRow,
@@ -36,6 +37,7 @@ type Section =
   | { name: "dashboard" }
   | { name: "leads" }
   | { name: "lead"; id: number }
+  | { name: "group" }
   | { name: "sequences" }
   | { name: "workflows" }
   | { name: "broadcasts" }
@@ -45,6 +47,7 @@ type Section =
 const SECTIONS: { key: Section["name"]; labelKey: import("../i18n").TranslationKey }[] = [
   { key: "dashboard", labelKey: "adminNavDashboard" },
   { key: "leads", labelKey: "adminNavLeads" },
+  { key: "group", labelKey: "adminNavGroup" },
   { key: "stands", labelKey: "adminNavStands" },
   { key: "sequences", labelKey: "adminNavSequences" },
   { key: "workflows", labelKey: "adminNavWorkflows" },
@@ -60,6 +63,7 @@ function parseHash(): Section {
   }
   if (
     h === "leads" ||
+    h === "group" ||
     h === "sequences" ||
     h === "workflows" ||
     h === "audit" ||
@@ -225,6 +229,7 @@ function Shell({ me, section, onSignOut }: { me: AdminUser; section: Section; on
           {section.name === "dashboard" ? <Dashboard /> : null}
           {section.name === "leads" ? <LeadsList onOpen={(id) => navigate({ name: "lead", id })} /> : null}
           {section.name === "lead" ? <LeadDetail id={section.id} onBack={() => navigate({ name: "leads" })} /> : null}
+          {section.name === "group" ? <LeadsGroupPanel /> : null}
           {section.name === "sequences" ? <Sequences /> : null}
           {section.name === "workflows" ? <Workflows /> : null}
           {section.name === "broadcasts" ? <Broadcasts /> : null}
@@ -391,16 +396,27 @@ function BreakdownChips({ data, tier }: { data: Record<string, number>; tier?: b
 
 // ---------- Leads list ----------
 
+type GroupFilter = "" | "failed" | "sent";
+
+function groupStatus(l: AdminLead): "failed" | "sent" | "unknown" {
+  if (l.groupNotifyError) return "failed";
+  if (l.groupNotifiedAt) return "sent";
+  return "unknown"; // row predates delivery tracking
+}
+
 function LeadsList({ onOpen }: { onOpen: (id: number) => void }) {
   const language: Language = "uz";
   const [leads, setLeads] = useState<AdminLead[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [groupFilter, setGroupFilter] = useState<GroupFilter>("");
+  const [resending, setResending] = useState<number | null>(null);
+  const [resendMsg, setResendMsg] = useState<{ id: number; ok: boolean } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const data = await adminCall<{ items: AdminLead[] }>("/leads?limit=200");
+        const data = await adminCall<{ items: AdminLead[] }>(`/leads?limit=200`);
         if (!cancelled) setLeads(data.items);
       } catch (err) {
         if (!cancelled) setError(err instanceof Error ? err.message : String(err));
@@ -409,6 +425,27 @@ function LeadsList({ onOpen }: { onOpen: (id: number) => void }) {
     return () => { cancelled = true; };
   }, []);
 
+  async function resend(id: number) {
+    setResending(id);
+    setResendMsg(null);
+    try {
+      await adminCall<{ ok: true }>(`/leads/${id}/notify-group`, { method: "POST" });
+      setResendMsg({ id, ok: true });
+    } catch {
+      setResendMsg({ id, ok: false });
+    } finally {
+      // Refresh so the badge flips to the real state.
+      try {
+        const data = await adminCall<{ items: AdminLead[] }>(`/leads?limit=200`);
+        setLeads(data.items);
+      } catch {
+        // keep the previous list — the status message is still shown
+      }
+      setResending(null);
+      setTimeout(() => setResendMsg((m) => (m?.id === id ? null : m)), 4000);
+    }
+  }
+
   if (error) {
     return <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div>;
   }
@@ -416,11 +453,28 @@ function LeadsList({ onOpen }: { onOpen: (id: number) => void }) {
     return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
   }
 
+  const visible = groupFilter ? leads.filter((l) => groupStatus(l) === groupFilter) : leads;
+
   return (
     <div>
       <h1 className="adm__page-title">{t(language, "adminLeadsTitle")}</h1>
       <div className="adm__toolbar">
-        <span style={{ color: "var(--ink-muted)" }}>{leads.length} ta</span>
+        <select
+          className="adm__input"
+          style={{ width: "auto" }}
+          value={groupFilter}
+          onChange={(e) => setGroupFilter(e.target.value as GroupFilter)}
+        >
+          <option value="">{t(language, "adminLeadsFilterAll")}</option>
+          <option value="failed">{t(language, "adminLeadsFilterFailed")}</option>
+          <option value="sent">{t(language, "adminLeadsFilterSent")}</option>
+        </select>
+        <span style={{ color: "var(--ink-muted)" }}>{visible.length} ta</span>
+        {resendMsg ? (
+          <span className={resendMsg.ok ? "adm__status-ok" : "adm__status-err"}>
+            {resendMsg.ok ? t(language, "adminLeadsResendOk") : t(language, "adminLeadsResendFailed")}
+          </span>
+        ) : null}
         <a
           className="adm__btn adm__btn--secondary"
           style={{ width: "auto", padding: "10px 20px", color: "var(--ink)", textDecoration: "none" }}
@@ -429,7 +483,7 @@ function LeadsList({ onOpen }: { onOpen: (id: number) => void }) {
           {t(language, "adminLeadsExport")}
         </a>
       </div>
-      {leads.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="adm__empty">{t(language, "adminLeadsEmpty")}</div>
       ) : (
         <table className="adm__table">
@@ -443,27 +497,52 @@ function LeadsList({ onOpen }: { onOpen: (id: number) => void }) {
               <th>{t(language, "adminLeadsPhone")}</th>
               <th>{t(language, "adminLeadsCompany")}</th>
               <th>{t(language, "adminLeadsLang")}</th>
+              <th>{t(language, "adminLeadsGroupCol")}</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {leads.map((l) => (
-              <tr key={l.id}>
-                <td>{l.id}</td>
-                <td>{new Date(l.createdAt).toLocaleString()}</td>
-                <td><b>{l.leadScore}</b></td>
-                <td><TierBadge tier={l.leadTier} /></td>
-                <td>{l.fullName}<br /><span style={{ color: "var(--ink-muted)" }}>{l.position}</span></td>
-                <td>{l.phone ?? "—"}</td>
-                <td>{l.companyName ?? "—"}</td>
-                <td>{l.language.toUpperCase()}</td>
-                <td>
-                  <button className="adm__btn adm__btn--secondary" style={{ width: "auto", padding: "6px 12px" }} onClick={() => onOpen(l.id)}>
-                    {t(language, "adminLeadsShow")}
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {visible.map((l) => {
+              const g = groupStatus(l);
+              return (
+                <tr key={l.id}>
+                  <td>{l.id}</td>
+                  <td>{new Date(l.createdAt).toLocaleString()}</td>
+                  <td><b>{l.leadScore}</b></td>
+                  <td><TierBadge tier={l.leadTier} /></td>
+                  <td>{l.fullName}<br /><span style={{ color: "var(--ink-muted)" }}>{l.position}</span></td>
+                  <td>{l.phone ?? "—"}</td>
+                  <td>{l.companyName ?? "—"}</td>
+                  <td>{l.language.toUpperCase()}</td>
+                  <td title={l.groupNotifyError ?? undefined}>
+                    {g === "sent" ? (
+                      <span style={{ color: "var(--success)" }}>✓ {t(language, "adminLeadsGroupSent")}</span>
+                    ) : g === "failed" ? (
+                      <span style={{ color: "#c0392b" }}>⚠ {t(language, "adminLeadsGroupFailed")}</span>
+                    ) : (
+                      <span style={{ color: "var(--ink-muted)" }}>—</span>
+                    )}
+                    {g === "failed" ? (
+                      <div>
+                        <button
+                          className="adm__btn adm__btn--secondary"
+                          style={{ width: "auto", padding: "4px 10px", marginTop: 4 }}
+                          disabled={resending === l.id}
+                          onClick={() => void resend(l.id)}
+                        >
+                          {resending === l.id ? t(language, "adminCommonLoading") : t(language, "adminLeadsResendShort")}
+                        </button>
+                      </div>
+                    ) : null}
+                  </td>
+                  <td>
+                    <button className="adm__btn adm__btn--secondary" style={{ width: "auto", padding: "6px 12px" }} onClick={() => onOpen(l.id)}>
+                      {t(language, "adminLeadsShow")}
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
@@ -489,6 +568,8 @@ function LeadDetail({ id, onBack }: { id: number; onBack: () => void }) {
   const language: Language = "uz";
   const [lead, setLead] = useState<AdminLead | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resending, setResending] = useState(false);
+  const [resendMsg, setResendMsg] = useState<"ok" | "err" | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -502,6 +583,25 @@ function LeadDetail({ id, onBack }: { id: number; onBack: () => void }) {
     })();
     return () => { cancelled = true; };
   }, [id]);
+
+  async function resend() {
+    setResending(true);
+    setResendMsg(null);
+    try {
+      await adminCall<{ ok: true }>(`/leads/${id}/notify-group`, { method: "POST" });
+      setResendMsg("ok");
+    } catch {
+      setResendMsg("err");
+    }
+    try {
+      const data = await adminCall<AdminLead>(`/leads/${id}`);
+      setLead(data);
+    } catch {
+      // keep previous data
+    }
+    setResending(false);
+    setTimeout(() => setResendMsg(null), 4000);
+  }
 
   if (error) return <div className="adm__empty">{t(language, "adminCommonError")}: {error}</div>;
   if (!lead) return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
@@ -517,9 +617,19 @@ function LeadDetail({ id, onBack }: { id: number; onBack: () => void }) {
             <h1 className="adm__detail-name">{lead.fullName}</h1>
             <div className="adm__detail-meta">{lead.position} · {lead.language.toUpperCase()} · {new Date(lead.createdAt).toLocaleString()}</div>
           </div>
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <TierBadge tier={lead.leadTier} />
             <span style={{ fontWeight: 700 }}>{lead.leadScore}/100</span>
+            <button
+              className="adm__btn adm__btn--secondary"
+              style={{ width: "auto", padding: "6px 14px", color: "var(--ink)" }}
+              disabled={resending}
+              onClick={() => void resend()}
+            >
+              {resending ? t(language, "adminCommonLoading") : t(language, "adminLeadsResend")}
+            </button>
+            {resendMsg === "ok" ? <span className="adm__status-ok">{t(language, "adminLeadsResendOk")}</span> : null}
+            {resendMsg === "err" ? <span className="adm__status-err">{t(language, "adminLeadsResendFailed")}</span> : null}
           </div>
         </div>
         <div className="adm__detail-grid">
@@ -534,6 +644,13 @@ function LeadDetail({ id, onBack }: { id: number; onBack: () => void }) {
           <Field label="Telegram" value={lead.user.username ? `@${lead.user.username}` : `${lead.user.firstName ?? ""} (${lead.user.telegramId})`} />
           <Field label={t(language, "adminLeadsUtm")} value={formatUtm(lead.utm)} />
           <Field label={t(language, "adminLeadsPhoneCrm")} value={lead.status === "SYNCED" ? `lead #${lead.amoLeadId}` : lead.status} />
+          <Field
+            label={t(language, "adminLeadsGroupSentAt")}
+            value={lead.groupNotifiedAt ? new Date(lead.groupNotifiedAt).toLocaleString() : "—"}
+          />
+          {lead.groupNotifyError ? (
+            <Field label={t(language, "adminLeadsGroupError")} value={lead.groupNotifyError} />
+          ) : null}
         </div>
       </div>
     </div>
@@ -569,6 +686,177 @@ function formatUtm(utm: AdminLead["utm"]): string {
     utm.term && `term=${utm.term}`,
   ].filter(Boolean);
   return parts.length ? parts.join(" · ") : "—";
+}
+
+// ---------- Leads group (Telegram) ----------
+//
+// "Guruhga xabar kelmayapti" triage screen: shows which step of the
+// delivery pipeline is broken (config -> token -> group visibility ->
+// posting) and what to do about it. The Test button posts a real
+// message into the group, so a green result means the next lead will
+// arrive.
+
+const FAILED_AT_LABEL: Record<NonNullable<LeadsGroupDiagnosis["failedAt"]>, import("../i18n").TranslationKey> = {
+  not_configured: "adminGroupStepConfig",
+  get_me: "adminGroupStepToken",
+  get_chat: "adminGroupStepChat",
+  send: "adminGroupStepSend",
+};
+
+function LeadsGroupPanel() {
+  const language: Language = "uz";
+  const [data, setData] = useState<LeadsGroupDiagnosis | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<LeadsGroupDiagnosis | null>(null);
+
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const d = await adminCall<LeadsGroupDiagnosis>("/leads-group");
+      setData(d);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : String(err));
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function runTest() {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const result = await adminCall<LeadsGroupDiagnosis>("/leads-group/test", { method: "POST" });
+      setTestResult(result);
+      setData(result);
+    } catch (err) {
+      setTestResult({
+        configured: data?.configured ?? false,
+        chatId: data?.chatId ?? null,
+        bot: data?.bot ?? null,
+        chat: data?.chat ?? null,
+        sendOk: false,
+        failedAt: "send",
+        error: err instanceof Error ? err.message : String(err),
+        hintUz: null,
+        hintEn: null,
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  if (loadError && !data) {
+    return <div className="adm__empty">{t(language, "adminCommonError")}: {loadError}</div>;
+  }
+  if (!data) {
+    return <div className="adm__empty">{t(language, "adminCommonLoading")}</div>;
+  }
+
+  const result = testResult ?? data;
+  const broke = result.failedAt;
+
+  return (
+    <div>
+      <h1 className="adm__page-title">{t(language, "adminGroupTitle")}</h1>
+      <p style={{ color: "var(--ink-muted)", marginBottom: 24, maxWidth: 760 }}>
+        {t(language, "adminGroupSubtitle")}
+      </p>
+
+      {/* Pipeline status: 4 steps, the broken one is highlighted. */}
+      <div className="adm__group-steps">
+        <GroupStep
+          label={t(language, FAILED_AT_LABEL.not_configured)}
+          ok={result.configured}
+          broken={broke === "not_configured"}
+          value={result.chatId ?? "—"}
+        />
+        <GroupStep
+          label={t(language, FAILED_AT_LABEL.get_me)}
+          ok={result.bot !== null}
+          broken={broke === "get_me"}
+          value={result.bot ? `@${result.bot.username} (id: ${result.bot.id})` : "—"}
+        />
+        <GroupStep
+          label={t(language, FAILED_AT_LABEL.get_chat)}
+          ok={result.chat !== null}
+          broken={broke === "get_chat"}
+          value={
+            result.chat
+              ? `${result.chat.title} · ${result.chat.type}${result.chat.memberCount !== null ? ` · ${result.chat.memberCount} a'zo` : ""}`
+              : "—"
+          }
+        />
+        <GroupStep
+          label={t(language, FAILED_AT_LABEL.send)}
+          ok={result.sendOk}
+          broken={broke === "send"}
+          value={result.sendOk ? "✓" : testResult ? "✗" : "—"}
+        />
+      </div>
+
+      {/* Result banner */}
+      {testResult ? (
+        testResult.sendOk ? (
+          <div className="adm__group-banner adm__group-banner--ok">
+            {t(language, "adminGroupTestOk")}
+          </div>
+        ) : (
+          <div className="adm__group-banner adm__group-banner--err">
+            <div>
+              <b>{t(language, "adminGroupTestFailed")}</b>
+              {testResult.error ? <div style={{ marginTop: 6 }}>{testResult.error}</div> : null}
+            </div>
+            {testResult.hintUz ? <div className="adm__group-hint">{testResult.hintUz}</div> : null}
+          </div>
+        )
+      ) : null}
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 20, flexWrap: "wrap" }}>
+        <button className="adm__btn" style={{ width: "auto", padding: "10px 20px" }} disabled={testing} onClick={runTest}>
+          {testing ? t(language, "adminCommonLoading") : t(language, "adminGroupTestBtn")}
+        </button>
+        <button className="adm__btn adm__btn--secondary" style={{ width: "auto", padding: "10px 20px", color: "var(--ink)" }} onClick={load}>
+          {t(language, "adminGroupRefresh")}
+        </button>
+      </div>
+
+      {/* Checklist when something is broken */}
+      {broke ? (
+        <section className="adm__panel" style={{ marginTop: 24 }}>
+          <h2 className="adm__panel-title">{t(language, "adminGroupHelpTitle")}</h2>
+          <ol className="adm__list adm__list--numbered">
+            <li>
+              {t(language, "adminGroupHelp1")}
+            </li>
+            <li>
+              {t(language, "adminGroupHelp2")}
+            </li>
+            <li>
+              {t(language, "adminGroupHelp3")}
+            </li>
+            <li>
+              {t(language, "adminGroupHelp4")}
+            </li>
+          </ol>
+        </section>
+      ) : null}
+    </div>
+  );
+}
+
+function GroupStep({ label, ok, broken, value }: { label: string; ok: boolean; broken: boolean; value: string }) {
+  const cls = "adm__group-step" + (broken ? " adm__group-step--broken" : ok ? " adm__group-step--ok" : "");
+  return (
+    <div className={cls}>
+      <div className="adm__group-step-head">
+        <span>{broken ? "✗" : ok ? "✓" : "•"} {label}</span>
+      </div>
+      <div className="adm__group-step-value">{value}</div>
+    </div>
+  );
 }
 
 // ---------- Stands (real floor plan) ----------

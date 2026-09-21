@@ -128,6 +128,23 @@ statistikani ko'rish mumkin.
    Xavfsizlik uchun bu komandalar faqat `LEADS_GROUP_CHAT_ID` guruhida ishlaydi —
    botga shaxsiy yozilganda javob bermaydi.
 
+> **Qaysi ariza guruhga yetib bormadi?** Leadlar ro'yxatida **«Guruh»** ustuni
+> har bir arizaning guruhga yuborilganini (`✓ yuborildi`) yoki yuborilmaganini
+> (`⚠ yuborilmadi` + xato sababi) ko'rsatadi; buzilganlarini **«Qayta yuborish»**
+> tugmasi bilan qayta yuborish mumkin (ariza sahifasida ham bor). «Guruhga
+> yuborilmagan» filtri orqali faqat muammoli leadlarni ko'rish mumkin. CSV
+> eksportda ham `groupNotifiedAt` / `groupNotifyError` ustunlari bor.
+>
+> **Guruhga xabar kelmasa?** Admin panelda **«Telegram guruhi»** bo'limi bor:
+> u zanjirni bosqichma-bosqich tekshiradi (chat ID sozlanishi → bot token →
+> bot guruhni ko'ra oladi → xabar yuborish) va qaysi bosqich buzilganini
+> tushunarli so'z bilan yozadi. **«Test xabar yuborish»** tugmasi guruhga
+> haqiqiy test xabar yuboradi — yashilsa, ariza xabarlari ham keladi.
+> Server tomonda har bir xato `LEADS_GROUP_NOTIFY_FAILED` belgisi bilan
+> logga tushadi: `fly logs | grep LEADS_GROUP`. Eng ko'p uchraydigan sabablar:
+> guruh o'chirilib qayta yaratilgan (ID o'zgargan), bot guruhdan chiqarilgan
+> yoki guruhda "faqat adminlar yozadi" rejimi yoqilgan.
+
 ### 3. amoCRM sozlash
 
 1. amoCRM'da **Settings → Integrations → shaxsiy integratsiya** yarating, uzoq
